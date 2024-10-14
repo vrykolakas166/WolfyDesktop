@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Wolfy (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Wolfy (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
