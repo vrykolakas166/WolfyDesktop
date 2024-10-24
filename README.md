@@ -11,6 +11,7 @@
 
 ## How To Use
 
+> **F2** Change theme.<br />
 > **F4** Close the application.<br />
 > **F10** Check version.<br />
 > **F11** Toggle fullscreen mode.<br />
