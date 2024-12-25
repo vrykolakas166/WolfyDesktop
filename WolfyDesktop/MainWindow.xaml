@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="WolfyDesktop.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:WolfyDesktop"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="WolfyDesktop">
+
+    <Grid x:Name="MainContainer"
+          Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <!-- Background video -->
+        <MediaPlayerElement x:Name="BackgroundVideo" 
+                            AutoPlay="True" 
+                            AreTransportControlsEnabled="False" 
+                            Stretch="UniformToFill" 
+                            Opacity="0.5"/>
+
+        <!-- Mode trigger section -->
+        <Button x:Name="ButtonExit" Click="ButtonExit_Click" Height="0" Width="0" Opacity="0">
+            <Button.KeyboardAccelerators>
+                <KeyboardAccelerator Key="F4" />
+            </Button.KeyboardAccelerators>
+        </Button>
+        <Button x:Name="ButtonFocusMode" Click="ButtonFocusMode_Click" Height="0" Width="0" Opacity="0">
+            <Button.KeyboardAccelerators>
+                <KeyboardAccelerator Key="F11" />
+            </Button.KeyboardAccelerators>
+        </Button>
+        <Button x:Name="ButtonChillMode" Click="ButtonChillMode_Click" Height="0" Width="0" Opacity="0">
+            <Button.KeyboardAccelerators>
+                <KeyboardAccelerator Key="F12" />
+            </Button.KeyboardAccelerators>
+        </Button>
+
+        <!-- Clock section -->
+        <StackPanel x:Name="DigitalClock" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Center">
+            <StackPanel Orientation="Horizontal">
+                <!-- Hours -->
+                <StackPanel>
+                    <TextBlock x:Name="HourTens" Text="0" >
+                        <TextBlock.RenderTransform>
+                            <TranslateTransform Y="0"/>
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
+                    <TextBlock x:Name="NewHourTens" Text="0"  Opacity="0">
+                        <TextBlock.RenderTransform>
+                            <TranslateTransform Y="0"/>
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock x:Name="HourUnits" Text="0" >
+                        <TextBlock.RenderTransform>
+                            <TranslateTransform Y="0"/>
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
+                    <TextBlock x:Name="NewHourUnits" Text="0"  Opacity="0">
+                        <TextBlock.RenderTransform>
+                            <TranslateTransform Y="0"/>
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
+                </StackPanel>
+            </StackPanel>
+            <TextBlock x:Name="DotSeperator1" Text=":" />
+            <StackPanel Orientation="Horizontal">
+                <!-- Minutes -->
+                <StackPanel>
+                    <TextBlock x:Name="MinuteTens" Text="0" >
+                        <TextBlock.RenderTransform>
+                            <TranslateTransform Y="0"/>
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
+                    <TextBlock x:Name="NewMinuteTens" Text="0"  Opacity="0">
+                        <TextBlock.RenderTransform>
+                            <TranslateTransform Y="0"/>
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock x:Name="MinuteUnits" Text="0" >
+                        <TextBlock.RenderTransform>
+                            <TranslateTransform Y="0"/>
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
+                    <TextBlock x:Name="NewMinuteUnits" Text="0"  Opacity="0">
+                        <TextBlock.RenderTransform>
+                            <TranslateTransform Y="0"/>
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
+                </StackPanel>
+            </StackPanel>
+            <TextBlock x:Name="DotSeperator2" Text=":" />
+            <StackPanel Orientation="Horizontal">
+                <!-- Seconds -->
+                <StackPanel>
+                    <TextBlock x:Name="SecondTens" Text="0" >
+                        <TextBlock.RenderTransform>
+                            <TranslateTransform Y="0"/>
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
+                    <TextBlock x:Name="NewSecondTens" Text="0"  Opacity="0">
+                        <TextBlock.RenderTransform>
+                            <TranslateTransform Y="0"/>
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock x:Name="SecondUnits" Text="0" >
+                        <TextBlock.RenderTransform>
+                            <TranslateTransform Y="0"/>
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
+                    <TextBlock x:Name="NewSecondUnits" Text="0"  Opacity="0">
+                        <TextBlock.RenderTransform>
+                            <TranslateTransform Y="0"/>
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel.Resources>
+                <Style TargetType="TextBlock">
+                    <Setter Property="HorizontalAlignment" Value="Center" />
+                </Style>
+            </StackPanel.Resources>
+        </StackPanel>
+
+        <!--Play spotify music-->
+        <Button x:Name="ButtonPlayMusic" 
+                Click="ButtonPlayMusic_Click" 
+                Height="50" 
+                Width="120" 
+                Visibility="Collapsed"
+                HorizontalAlignment="Center" 
+                VerticalAlignment="Top" >
+            <StackPanel Orientation="Horizontal"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center">
+                <TextBlock Text="Spotify"
+                           Margin="0 0 10 0"/>
+                <FontIcon Glyph="&#xE768;" />
+            </StackPanel>
+            <Button.Flyout>
+                <Flyout x:Name="ButtonPlayMusicFlyout">
+                    <StackPanel>
+                        <TextBlock x:Name="ButtonPlayMusicFlyoutMessage" Style="{ThemeResource BaseTextBlockStyle}" Text="" Margin="0,0,0,12" />
+                        <Button x:Name="ButtonPlayMusicFlyoutOk" Click="ButtonPlayMusicFlyoutOk_Click" Content="Understand" />
+                    </StackPanel>
+                </Flyout>
+            </Button.Flyout>
+        </Button>
+
+        <Button Height="0" Width="0" Opacity="0"
+                HorizontalAlignment="Center" 
+                VerticalAlignment="Bottom">
+            <Button.KeyboardAccelerators>
+                <KeyboardAccelerator Key="F2" Modifiers="None"/>
+            </Button.KeyboardAccelerators>
+            <Button.Flyout>
+                <Flyout>
+                    <StackPanel>
+                        <ComboBox x:Name="ComboBoxThemes" 
+                                  SelectedValue="Dark"
+                                  SelectionChanged="ComboBoxThemes_SelectionChanged" 
+                                  Header="Theme" 
+                                  Width="200">
+                            <x:String>Light</x:String>
+                            <x:String>Dark</x:String>
+                            <x:String>System</x:String>
+                        </ComboBox>
+                    </StackPanel>
+                </Flyout>
+            </Button.Flyout>
+        </Button>
+
+        <Button x:Name="ButtonCheckUpdate" 
+                Click="ButtonCheckUpdate_Click"
+                Height="0" Width="0" Opacity="0"
+                HorizontalAlignment="Right" 
+                VerticalAlignment="Bottom">
+            <Button.KeyboardAccelerators>
+                <KeyboardAccelerator Key="F10" Modifiers="None"/>
+            </Button.KeyboardAccelerators>
+            <Button.Flyout>
+                <Flyout>
+                    <StackPanel>
+                        <TextBlock x:Name="ButtonCheckUpdateFlyoutMessage" TextWrapping="Wrap" Style="{ThemeResource BaseTextBlockStyle}" Text="" Margin="5" />
+                    </StackPanel>
+                </Flyout>
+            </Button.Flyout>
+        </Button>
+    </Grid>
+</Window>
