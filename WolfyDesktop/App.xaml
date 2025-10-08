@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Application
     x:Class="WolfyDesktop.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -8,9 +8,14 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
-                <!-- Other merged dictionaries here -->
+                <!--  Other merged dictionaries here  -->
             </ResourceDictionary.MergedDictionaries>
-            <!-- Other app resources here -->
+            <!--  Other app resources here  -->
+            <FontFamily x:Key="SFProDisplay">/Assets/font/SF-Pro-Display-Bold.otf#SF Pro Display</FontFamily>
         </ResourceDictionary>
+
+        <Style TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource SFProDisplay}" />
+        </Style>
     </Application.Resources>
 </Application>

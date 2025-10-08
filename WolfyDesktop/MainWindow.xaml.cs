@@ -58,7 +58,6 @@ namespace WolfyDesktop
             UpdateClockDisplay();
 
             // Set initial font size
-            SetFontFamily();
             SetFontSize();
 
             // Subscribe to the SizeChanged event to adjust font size on window resize
@@ -217,30 +216,6 @@ namespace WolfyDesktop
         private void SetPosition()
         {
             DigitalClock.Margin = new Thickness(0, AppWindow.Size.Height / 4, 0, 0);
-        }
-
-        private void SetFontFamily()
-        {
-            // Construct the absolute or relative path to the font file
-            string fontPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "font", "SF-Pro-Display-Bold.otf");
-
-            // Create the FontFamily using the file path
-            var fontFamily = new FontFamily($"file:///{fontPath.Replace("\\", "/")}#SF Pro Display Bold");
-
-            HourTens.FontFamily
-            = NewHourTens.FontFamily
-            = HourUnits.FontFamily
-            = NewHourUnits.FontFamily
-            = DotSeperator1.FontFamily
-            = MinuteTens.FontFamily
-            = NewMinuteTens.FontFamily
-            = MinuteUnits.FontFamily
-            = NewMinuteUnits.FontFamily
-            = DotSeperator2.FontFamily
-            = SecondTens.FontFamily
-            = NewSecondTens.FontFamily
-            = SecondUnits.FontFamily
-            = NewSecondUnits.FontFamily = fontFamily;
         }
 
         private void SetFontSize()
