@@ -159,6 +159,7 @@
             <StackPanel.Resources>
                 <Style TargetType="TextBlock">
                     <Setter Property="HorizontalAlignment" Value="Center" />
+                    <Setter Property="FontFamily" Value="{StaticResource ResourceKey=SFProDisplay}" />
                 </Style>
             </StackPanel.Resources>
         </StackPanel>

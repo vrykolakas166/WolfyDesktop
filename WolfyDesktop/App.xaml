@@ -13,9 +13,5 @@
             <!--  Other app resources here  -->
             <FontFamily x:Key="SFProDisplay">/Assets/font/SF-Pro-Display-Bold.otf#SF Pro Display</FontFamily>
         </ResourceDictionary>
-
-        <Style TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="{StaticResource SFProDisplay}" />
-        </Style>
     </Application.Resources>
 </Application>

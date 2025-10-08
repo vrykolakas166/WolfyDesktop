@@ -23,9 +23,6 @@
 
 		<SatelliteResourceLanguages>en-US;vi-VN</SatelliteResourceLanguages>
 	</PropertyGroup>
-	<ItemGroup>
-	  <None Remove="Assets\font\SF-Pro-Display-Bold.otf" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<Content Include="logo.ico" />
