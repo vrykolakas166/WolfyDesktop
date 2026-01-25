@@ -25,6 +25,9 @@
 		<CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
 		<InvariantGlobalization>true</InvariantGlobalization>
 	</PropertyGroup>
+	<ItemGroup>
+	  <None Remove="Assets\loading.gif" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<Content Include="logo.ico" />
@@ -51,6 +54,9 @@
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </Content>
 	  <Content Update="Assets\font\SF-Pro-Display-Bold.otf">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	  <Content Update="Assets\loading.gif">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </Content>
 	</ItemGroup>

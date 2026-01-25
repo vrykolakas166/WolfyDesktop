@@ -174,8 +174,25 @@
             </StackPanel>
         </StackPanel>
 
-
-
+        <!--  Welcome Panel  -->
+        <Border
+            x:Name="WelcomPanel"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Background="Black"
+            BorderBrush="Transparent"
+            BorderThickness="0"
+            IsHitTestVisible="False"
+            Loaded="WelcomPanel_Loaded"
+            Opacity="1">
+            <Image
+                Width="300"
+                Height="300"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Source="{x:Bind local:App.LoadingGif, Mode=OneWay}"
+                Stretch="Uniform" />
+        </Border>
 
         <!--  ==========================================================================================  -->
         <!--  ================================== Mode trigger section ==================================  -->

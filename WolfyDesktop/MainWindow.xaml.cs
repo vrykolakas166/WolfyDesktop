@@ -462,5 +462,20 @@ namespace WolfyDesktop
 
             await dialog.ShowAsync();
         }
+
+        private void WelcomPanel_Loaded(object sender, RoutedEventArgs e)
+        {
+            var temp = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(1000)
+            };
+            temp.Start();
+            temp.Tick += (_, _1) =>
+            {
+                WelcomPanel.Visibility = Visibility.Collapsed;
+                temp.Stop();
+                temp = null;
+            };
+        }
     }
 }
