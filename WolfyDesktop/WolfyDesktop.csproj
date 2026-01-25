@@ -17,8 +17,8 @@
 		<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
 
 		<!--Version-->
-		<AssemblyVersion>1.1.0</AssemblyVersion>
-		<FileVersion>1.1.0</FileVersion>
+		<AssemblyVersion>1.1.2</AssemblyVersion>
+		<FileVersion>1.1.2</FileVersion>
 		<ApplicationIcon>logo.ico</ApplicationIcon>
 
 		<SatelliteResourceLanguages>en-US;vi-VN</SatelliteResourceLanguages>
