@@ -1,0 +1,73 @@
+<UserControl
+    x:Class="WolfyDesktop.AudioManagerDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:WolfyDesktop"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Width="450"
+    mc:Ignorable="d">
+
+    <StackPanel Spacing="15">
+        <!--  Warning Message  -->
+        <TextBlock
+            x:Name="MessageText"
+            Foreground="Orange"
+            TextWrapping="Wrap"
+            Visibility="Collapsed" />
+
+        <!--  Status  -->
+        <StackPanel
+            Margin="0,0,0,10"
+            Orientation="Horizontal"
+            Spacing="8">
+            <FontIcon
+                x:Name="StatusIcon"
+                VerticalAlignment="Center"
+                FontSize="16"
+                Glyph="&#xE7BA;" />
+            <TextBlock
+                x:Name="StatusText"
+                VerticalAlignment="Center"
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!--  Progress Bar  -->
+        <ProgressBar
+            x:Name="ProgressBar"
+            IsIndeterminate="False"
+            Visibility="Collapsed" />
+
+        <!--  Progress Text  -->
+        <TextBlock
+            x:Name="ProgressText"
+            Foreground="{ThemeResource TextFillColorPrimary}"
+            TextWrapping="Wrap"
+            Visibility="Collapsed" />
+
+        <!--  Download Button  -->
+        <Button
+            x:Name="DownloadButton"
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Center"
+            Click="DownloadButton_Click"
+            Content="Download Audio" />
+
+        <!--  Cancel Download Button  -->
+        <Button
+            x:Name="CancelButton"
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Center"
+            Click="CancelButton_Click"
+            Content="Cancel Download"
+            Visibility="Collapsed" />
+
+        <!--  Open Folder Button  -->
+        <Button
+            x:Name="OpenFolderButton"
+            Margin="0,5,0,0"
+            HorizontalAlignment="Stretch"
+            Click="OpenFolderButton_Click"
+            Content="Open Musics Folder" />
+    </StackPanel>
+</UserControl>

@@ -22,6 +22,8 @@
 		<ApplicationIcon>logo.ico</ApplicationIcon>
 
 		<SatelliteResourceLanguages>en-US;vi-VN</SatelliteResourceLanguages>
+		<CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
+		<InvariantGlobalization>true</InvariantGlobalization>
 	</PropertyGroup>
 
 	<ItemGroup>

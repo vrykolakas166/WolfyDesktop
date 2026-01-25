@@ -17,37 +17,8 @@
             Opacity="0.5"
             Stretch="UniformToFill" />
 
-        <!--  Mode trigger section  -->
-        <Button
-            x:Name="ButtonExit"
-            Width="0"
-            Height="0"
-            Click="ButtonExit_Click"
-            Opacity="0">
-            <Button.KeyboardAccelerators>
-                <KeyboardAccelerator Key="F4" />
-            </Button.KeyboardAccelerators>
-        </Button>
-        <Button
-            x:Name="ButtonFocusMode"
-            Width="0"
-            Height="0"
-            Click="ButtonFocusMode_Click"
-            Opacity="0">
-            <Button.KeyboardAccelerators>
-                <KeyboardAccelerator Key="F11" />
-            </Button.KeyboardAccelerators>
-        </Button>
-        <Button
-            x:Name="ButtonChillMode"
-            Width="0"
-            Height="0"
-            Click="ButtonChillMode_Click"
-            Opacity="0">
-            <Button.KeyboardAccelerators>
-                <KeyboardAccelerator Key="F12" />
-            </Button.KeyboardAccelerators>
-        </Button>
+        <!--  Background audio  -->
+        <MediaPlayerElement x:Name="BackgroundAudio" AreTransportControlsEnabled="False" />
 
         <!--  Clock section  -->
         <StackPanel
@@ -164,39 +135,52 @@
             </StackPanel.Resources>
         </StackPanel>
 
-        <!--  Play spotify music  -->
-        <Button
-            x:Name="ButtonPlayMusic"
-            Width="120"
-            Height="50"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Top"
-            Click="ButtonPlayMusic_Click"
+        <!--  Audio Player  -->
+        <StackPanel
+            x:Name="AudioPlayerPanel"
+            Margin="20,0,0,20"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Bottom"
+            Orientation="Horizontal"
+            Spacing="15"
             Visibility="Collapsed">
-            <StackPanel
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Orientation="Horizontal">
-                <TextBlock Margin="0,0,10,0" Text="Spotify" />
-                <FontIcon Glyph="&#xE768;" />
-            </StackPanel>
-            <Button.Flyout>
-                <Flyout x:Name="ButtonPlayMusicFlyout">
-                    <StackPanel>
-                        <TextBlock
-                            x:Name="ButtonPlayMusicFlyoutMessage"
-                            Margin="0,0,0,12"
-                            Style="{ThemeResource BaseTextBlockStyle}"
-                            Text="" />
-                        <Button
-                            x:Name="ButtonPlayMusicFlyoutOk"
-                            Click="ButtonPlayMusicFlyoutOk_Click"
-                            Content="Understand" />
-                    </StackPanel>
-                </Flyout>
-            </Button.Flyout>
-        </Button>
+            <!--  Play/Pause Button  -->
+            <Button
+                x:Name="ButtonPlayPause"
+                Width="40"
+                Height="40"
+                Click="ButtonPlayPause_Click"
+                ToolTipService.ToolTip="Play/Pause">
+                <FontIcon
+                    x:Name="PlayPauseIcon"
+                    FontSize="13"
+                    Glyph="&#xE768;" />
+            </Button>
 
+            <!--  Volume Control  -->
+            <StackPanel
+                VerticalAlignment="Center"
+                Orientation="Horizontal"
+                Spacing="10">
+                <FontIcon FontSize="13" Glyph="&#xE767;" />
+                <Slider
+                    x:Name="VolumeSlider"
+                    Width="100"
+                    Maximum="100"
+                    Minimum="0"
+                    ToolTipService.ToolTip="Volume"
+                    ValueChanged="VolumeSlider_ValueChanged"
+                    Value="50" />
+            </StackPanel>
+        </StackPanel>
+
+
+
+
+        <!--  ==========================================================================================  -->
+        <!--  ================================== Mode trigger section ==================================  -->
+        <!--  ==========================================================================================  -->
+        <!--  F2 Theme mode  -->
         <Button
             Width="0"
             Height="0"
@@ -223,7 +207,29 @@
                 </Flyout>
             </Button.Flyout>
         </Button>
-
+        <!--  F4 Exit app  -->
+        <Button
+            x:Name="ButtonExit"
+            Width="0"
+            Height="0"
+            Click="ButtonExit_Click"
+            Opacity="0">
+            <Button.KeyboardAccelerators>
+                <KeyboardAccelerator Key="F4" />
+            </Button.KeyboardAccelerators>
+        </Button>
+        <!--  F6 Audio Manager Popup  -->
+        <Button
+            x:Name="ButtonPackageManager"
+            Width="0"
+            Height="0"
+            Click="ButtonPackageManager_Click"
+            Opacity="0">
+            <Button.KeyboardAccelerators>
+                <KeyboardAccelerator Key="F6" Modifiers="None" />
+            </Button.KeyboardAccelerators>
+        </Button>
+        <!--  F10 Version check  -->
         <Button
             x:Name="ButtonCheckUpdate"
             Width="0"
@@ -248,5 +254,30 @@
                 </Flyout>
             </Button.Flyout>
         </Button>
+        <!--  F11 Toggle fullscreen  -->
+        <Button
+            x:Name="ButtonFocusMode"
+            Width="0"
+            Height="0"
+            Click="ButtonFocusMode_Click"
+            Opacity="0">
+            <Button.KeyboardAccelerators>
+                <KeyboardAccelerator Key="F11" />
+            </Button.KeyboardAccelerators>
+        </Button>
+
+        <!--  F12 Chill mode  -->
+        <Button
+            x:Name="ButtonChillMode"
+            Width="0"
+            Height="0"
+            Click="ButtonChillMode_Click"
+            Opacity="0">
+            <Button.KeyboardAccelerators>
+                <KeyboardAccelerator Key="F12" />
+            </Button.KeyboardAccelerators>
+        </Button>
+        <!--  ==========================================================================================  -->
+
     </Grid>
 </Window>

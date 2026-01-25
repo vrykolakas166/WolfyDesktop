@@ -6,6 +6,10 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using System;
 using System.Diagnostics;
+using System.IO;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using Windows.Storage;
 
 namespace WolfyDesktop
@@ -29,6 +33,8 @@ namespace WolfyDesktop
         private string _currentTheme = MyTheme.DARK;
 
         private bool IsChilled = false;
+
+        private static string AudioFilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Musics", "lofi_rain.m4a");
 
         public MainWindow()
         {
@@ -62,6 +68,9 @@ namespace WolfyDesktop
 
             // Subscribe to the SizeChanged event to adjust font size on window resize
             this.SizeChanged += MainWindow_SizeChanged;
+
+            // Initial audio check
+            _ = CheckAudioFileExists();
         }
 
         private void SetTheme(string selectedTheme)
@@ -107,9 +116,6 @@ namespace WolfyDesktop
         {
             if (IsChilled)
             {
-                // Show play button
-                ButtonPlayMusic.Visibility = Visibility.Collapsed;
-
                 // Stop playback and remove the media source
                 var mediaPlayer = BackgroundVideo.MediaPlayer;
                 mediaPlayer.Pause(); // Pause the video if it's currently playing
@@ -119,15 +125,21 @@ namespace WolfyDesktop
             }
             else
             {
-                // Hide play button
-                ButtonPlayMusic.Visibility = Visibility.Visible;
-
                 // Load the video from the embedded resource
                 var file = await StorageFile.GetFileFromPathAsync($"{AppDomain.CurrentDomain.BaseDirectory}Assets\\background.mp4");
                 var mediaPlayer = BackgroundVideo.MediaPlayer;
                 mediaPlayer.Source = Windows.Media.Core.MediaSource.CreateFromStorageFile(file);
                 mediaPlayer.Play();
                 mediaPlayer.MediaEnded += MediaPlayer_MediaEnded;
+
+                // Load audio
+
+
+                if (await CheckAudioFileExists())
+                {
+                    await InitializeBackgroundAudioMediaPlayer();
+                }
+
                 IsChilled = true;
             }
         }
@@ -138,38 +150,74 @@ namespace WolfyDesktop
             sender.Play();
         }
 
-        private void ButtonPlayMusic_Click(object _, RoutedEventArgs _1)
+        private async Task<bool> CheckAudioFileExists()
         {
-            ButtonPlayMusicFlyoutMessage.Text = "Running spotify...";
-            const string YOUR_PLAYLIST_ID = "1JLw7Y5YvlsA10XjaKHTxE";
-            string spotifyUri = $"spotify:playlist:{YOUR_PLAYLIST_ID}";
-
-            // Start the Spotify app with the specified URI
-            try
+            // Check if the audio file exists
+            if (!File.Exists(AudioFilePath))
             {
-                var processStartInfo = new ProcessStartInfo
-                {
-                    FileName = "spotify",
-                    Arguments = spotifyUri,
-                    UseShellExecute = true // Important to launch the application
-                };
-
-                Process.Start(processStartInfo);
-
-                ButtonPlayMusicFlyout.Hide();
+                AudioPlayerPanel.Visibility = Visibility.Collapsed;
+                await ShowPackageManagerDialog();
+                return false;
             }
-            catch (Exception ex)
+
+            AudioPlayerPanel.Visibility = Visibility.Visible;
+            return true;
+        }
+
+        private async Task<bool> InitializeBackgroundAudioMediaPlayer()
+        {
+            if (BackgroundAudio.MediaPlayer == null)
             {
-                // Handle exceptions (e.g., if Spotify is not installed)
-                Debug.WriteLine($"Error launching Spotify: {ex.Message}");
-                ButtonPlayMusicFlyoutMessage.Text = ex.Message;
+                // Initialize and load the audio
+                var file = await StorageFile.GetFileFromPathAsync(AudioFilePath);
+                var mediaPlayer = new Windows.Media.Playback.MediaPlayer
+                {
+                    Source = Windows.Media.Core.MediaSource.CreateFromStorageFile(file),
+                    Volume = VolumeSlider.Value / 100.0
+                };
+                mediaPlayer.MediaEnded += MediaPlayer_MediaEnded;
+                BackgroundAudio.SetMediaPlayer(mediaPlayer);
+                BackgroundAudio.MediaPlayer?.Play();
+                PlayPauseIcon.Glyph = "\uE769"; // Pause icon
+                return true;
+            }
+
+            return false;
+        }
+
+        private async void ButtonPlayPause_Click(object _, RoutedEventArgs _1)
+        {
+            if (!await CheckAudioFileExists())
+            {
+                return;
+            }
+
+            if (await InitializeBackgroundAudioMediaPlayer())
+            {
+            }
+            else
+            {
+                // Toggle play/pause
+                if (BackgroundAudio.MediaPlayer.PlaybackSession.PlaybackState == Windows.Media.Playback.MediaPlaybackState.Playing)
+                {
+                    BackgroundAudio.MediaPlayer.Pause();
+                    PlayPauseIcon.Glyph = "\uE768"; // Play icon
+
+                }
+                else
+                {
+                    BackgroundAudio.MediaPlayer.Play();
+                    PlayPauseIcon.Glyph = "\uE769"; // Pause icon
+                }
             }
         }
 
-        private void ButtonPlayMusicFlyoutOk_Click(object _, RoutedEventArgs _1)
+        private void VolumeSlider_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
         {
-            // Close the Flyout
-            ButtonPlayMusicFlyout.Hide();
+            if (BackgroundAudio?.MediaPlayer != null)
+            {
+                BackgroundAudio.MediaPlayer.Volume = e.NewValue / 100.0;
+            }
         }
 
         private void ButtonExit_Click(object sender, RoutedEventArgs e)
@@ -242,12 +290,6 @@ namespace WolfyDesktop
             = SecondUnits.FontSize
             = NewSecondUnits.FontSize = fontSize;
         }
-
-        //private void Timer_Tick(object _, object _1)
-        //{
-        //    UpdateClockDisplay();
-        //    //IsSpotifyAlive();
-        //}
 
         private void UpdateClockDisplay()
         {
@@ -378,12 +420,6 @@ namespace WolfyDesktop
             }
         }
 
-        //private static bool IsSpotifyAlive()
-        //{
-        //    // Check if any Spotify process is running
-        //    return Process.GetProcessesByName("Spotify").Length != 0;
-        //}
-
         private void ComboBoxThemes_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             try
@@ -397,7 +433,34 @@ namespace WolfyDesktop
         private void ButtonCheckUpdate_Click(object sender, RoutedEventArgs e)
         {
 
-            ButtonCheckUpdateFlyoutMessage.Text = $"Version: 1.0.0";
+            var exePath = Environment.ProcessPath!;
+            var version = FileVersionInfo.GetVersionInfo(exePath).FileVersion;
+
+            ButtonCheckUpdateFlyoutMessage.Text = $"Version: {version}";
+        }
+
+        private async void ButtonPackageManager_Click(object sender, RoutedEventArgs e)
+        {
+            await ShowPackageManagerDialog();
+        }
+
+        private async Task ShowPackageManagerDialog(string? message = null)
+        {
+            var audioManager = new AudioManagerDialog();
+            var dialog = new ContentDialog
+            {
+                Title = "Audio Manager",
+                CloseButtonText = "Close",
+                XamlRoot = this.Content.XamlRoot,
+                Content = audioManager
+            };
+
+            dialog.Closing += (s, args) =>
+            {
+                audioManager.CancelDownload();
+            };
+
+            await dialog.ShowAsync();
         }
     }
 }
