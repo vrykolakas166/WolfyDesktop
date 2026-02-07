@@ -13,6 +13,7 @@ namespace WolfyDesktop
     public partial class App : Application
     {
         public static BitmapImage? LoadingGif { get; set; }
+        public static nint MainHandle = nint.Zero;
 
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
@@ -31,6 +32,7 @@ namespace WolfyDesktop
         {
             PreloadImages();
             m_window = new MainWindow();
+            MainHandle = WinRT.Interop.WindowNative.GetWindowHandle(m_window);
             m_window.Activate();
         }
 
@@ -39,7 +41,6 @@ namespace WolfyDesktop
             var bitmap = new BitmapImage
             {
                 UriSource = new Uri("ms-appx:///Assets/loading.gif"),
-                // Force decode immediately
                 DecodePixelWidth = 200
             };
             LoadingGif = bitmap;

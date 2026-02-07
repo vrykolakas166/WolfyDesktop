@@ -294,6 +294,40 @@
                 <KeyboardAccelerator Key="F12" />
             </Button.KeyboardAccelerators>
         </Button>
+
+        <!--  Space Play/Pause toggle  -->
+        <Button
+            x:Name="ButtonSpacePlayPause"
+            Width="0"
+            Height="0"
+            Click="ButtonPlayPause_Click"
+            Opacity="0">
+            <Button.KeyboardAccelerators>
+                <KeyboardAccelerator Key="Space" Modifiers="None" />
+            </Button.KeyboardAccelerators>
+        </Button>
+        <!--  Arrow Up Volume Up  -->
+        <Button
+            x:Name="ButtonVolumeUp"
+            Width="0"
+            Height="0"
+            Click="ButtonVolumeUp_Click"
+            Opacity="0">
+            <Button.KeyboardAccelerators>
+                <KeyboardAccelerator Key="Up" Modifiers="None" />
+            </Button.KeyboardAccelerators>
+        </Button>
+        <!--  Arrow Down Volume Down  -->
+        <Button
+            x:Name="ButtonVolumeDown"
+            Width="0"
+            Height="0"
+            Click="ButtonVolumeDown_Click"
+            Opacity="0">
+            <Button.KeyboardAccelerators>
+                <KeyboardAccelerator Key="Down" Modifiers="None" />
+            </Button.KeyboardAccelerators>
+        </Button>
         <!--  ==========================================================================================  -->
 
     </Grid>

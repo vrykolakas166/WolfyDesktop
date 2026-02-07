@@ -3,28 +3,41 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using System;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Storage;
+using Windows.Storage.Pickers;
+using WolfyDesktop.Models;
 
 namespace WolfyDesktop
 {
     public sealed partial class AudioManagerDialog : UserControl
     {
-        private const string GOOGLE_DRIVE_FILE = "https://drive.usercontent.google.com/download?id=1x2JiSEDsj-MRPA6fhBjqf8jL12QSAPu4&export=download&confirm=t";
-        private const string AUDIO_FILENAME = "lofi_rain.m4a";
-        private static string AudioFilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Musics", AUDIO_FILENAME);
+        private const string GOOGLE_DRIVE_FILE = "https://drive.usercontent.google.com/download?id=1jzex-vuQrpHUZXI_VhV34AyY97DkUc5c&export=download";
+        private const string AUDIO_FILENAME = "lofi_rain.mp3";
+        private static string MusicsFolderPath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Musics");
+        private static string AudioFilePath => Path.Combine(MusicsFolderPath, AUDIO_FILENAME);
 
         private CancellationTokenSource? _cancellationTokenSource;
         private bool _isDownloading;
+        public readonly ObservableCollection<MusicItem> MusicItems = [];
 
         public AudioManagerDialog()
         {
             this.InitializeComponent();
-            _ = UpdateStatusAsync();
+            _ = InitializeAsync();
+        }
+
+        private async Task InitializeAsync()
+        {
+            MusicListView.ItemsSource = MusicItems;
+            await LoadMusicListAsync();
+            await UpdateStatusAsync();
         }
 
         public void SetMessage(string? message)
@@ -40,39 +53,115 @@ namespace WolfyDesktop
             }
         }
 
-        private async Task UpdateStatusAsync()
+        private async Task LoadMusicListAsync()
         {
-            bool fileExists = File.Exists(AudioFilePath);
+            MusicItems.Clear();
 
-            if (!fileExists)
-            {
-                StatusIcon.Glyph = "\uE7BA";
-                StatusIcon.Foreground = new SolidColorBrush(Colors.Orange);
-                StatusText.Text = "Audio file not found";
-                DownloadButton.Content = "Download Audio";
-                return;
-            }
+            Directory.CreateDirectory(MusicsFolderPath);
 
-            // File exists, now check if it's valid
-            bool isValid = await IsAudioFileValid();
+            var supportedExtensions = new[] { ".mp3", ".m4a", ".wav", ".flac", ".aac", ".wma" };
+            var musicFiles = Directory.GetFiles(MusicsFolderPath)
+                .Where(f => supportedExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
+                .ToList();
 
-            if (isValid)
+            var defaultMusic = GetDefaultMusicPath();
+
+            foreach (var file in musicFiles)
             {
-                StatusIcon.Glyph = "\uE930";
-                StatusIcon.Foreground = new SolidColorBrush(Colors.Green);
-                StatusText.Text = "Audio file exists";
-                DownloadButton.Content = "Re-download Audio";
-            }
-            else
-            {
-                StatusIcon.Glyph = "\uE7BA";
-                StatusIcon.Foreground = new SolidColorBrush(Colors.Red);
-                StatusText.Text = "Audio file is corrupted or cannot be played";
-                DownloadButton.Content = "Re-download Audio";
+                var fileInfo = new FileInfo(file);
+                var sizeInMB = fileInfo.Length / (1024.0 * 1024.0);
+
+                MusicItems.Add(new MusicItem
+                {
+                    FileName = Path.GetFileName(file),
+                    DisplayName = Path.GetFileNameWithoutExtension(file),
+                    FullPath = file,
+                    FileSize = fileInfo.Length,
+                    SizeText = $"{sizeInMB:F2} MB",
+                    IsDefault = file.Equals(defaultMusic, StringComparison.OrdinalIgnoreCase)
+                });
             }
         }
 
-        private async Task<bool> IsAudioFileValid()
+        public static string? GetDefaultMusicPath()
+        {
+            try
+            {
+                var settingsFile = Path.Combine(MusicsFolderPath, "settings.txt");
+                if (File.Exists(settingsFile))
+                {
+                    var defaultFileName = File.ReadAllText(settingsFile).Trim();
+                    var fullPath = Path.Combine(MusicsFolderPath, defaultFileName);
+                    if (File.Exists(fullPath))
+                    {
+                        return fullPath;
+                    }
+                }
+            }
+            catch { }
+
+            // Fallback to default audio file
+            return AudioFilePath;
+        }
+
+        private static void SaveDefaultMusicPath(string fileName)
+        {
+            try
+            {
+                var settingsFile = Path.Combine(MusicsFolderPath, "settings.txt");
+                File.WriteAllText(settingsFile, fileName);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to save default music: {ex.Message}");
+            }
+        }
+
+        private async Task UpdateStatusAsync()
+        {
+            if (MusicItems.Count == 0)
+            {
+                StatusIcon.Glyph = "\uE7BA";
+                StatusIcon.Foreground = new SolidColorBrush(Colors.Orange);
+                StatusText.Text = "No music files found in library";
+                DownloadButton.Content = "Download Default Audio";
+                return;
+            }
+
+            // Check if default audio file exists
+            bool defaultExists = File.Exists(AudioFilePath);
+
+            if (defaultExists)
+            {
+                // Check if the default file is valid
+                bool isValid = await IsAudioFileValid();
+
+                if (isValid)
+                {
+                    StatusIcon.Glyph = "\uE930";
+                    StatusIcon.Foreground = new SolidColorBrush(Colors.Green);
+                    StatusText.Text = $"Music library: {MusicItems.Count} file(s)";
+                    DownloadButton.Content = "Re-download Default Audio";
+                }
+                else
+                {
+                    StatusIcon.Glyph = "\uE7BA";
+                    StatusIcon.Foreground = new SolidColorBrush(Colors.Red);
+                    StatusText.Text = "Default audio is corrupted";
+                    DownloadButton.Content = "Re-download Default Audio";
+                }
+            }
+            else
+            {
+                // Default doesn't exist, but we have other music
+                StatusIcon.Glyph = "\uE930";
+                StatusIcon.Foreground = new SolidColorBrush(Colors.Green);
+                StatusText.Text = $"Music library: {MusicItems.Count} file(s)";
+                DownloadButton.Content = "Download Default Audio";
+            }
+        }
+
+        private static async Task<bool> IsAudioFileValid()
         {
             try
             {
@@ -129,6 +218,7 @@ namespace WolfyDesktop
                 StatusText.Text = $"Audio file downloaded successfully!\nLocation: {AudioFilePath}";
                 DownloadButton.Content = "Re-download Audio";
                 ProgressText.Foreground = new SolidColorBrush(Colors.Green);
+                await LoadMusicListAsync();
             }
             catch (OperationCanceledException)
             {
@@ -169,9 +259,113 @@ namespace WolfyDesktop
 
         private void OpenFolderButton_Click(object sender, RoutedEventArgs e)
         {
-            var musicFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Musics");
-            Directory.CreateDirectory(musicFolder);
-            Process.Start("explorer.exe", musicFolder);
+            Directory.CreateDirectory(MusicsFolderPath);
+            Process.Start("explorer.exe", MusicsFolderPath);
+        }
+
+        private async void AddMusicButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var picker = new FileOpenPicker();
+                WinRT.Interop.InitializeWithWindow.Initialize(picker, App.MainHandle);
+
+                picker.FileTypeFilter.Add(".mp3");
+                picker.FileTypeFilter.Add(".m4a");
+                picker.FileTypeFilter.Add(".wav");
+                picker.FileTypeFilter.Add(".flac");
+                picker.FileTypeFilter.Add(".aac");
+                picker.FileTypeFilter.Add(".wma");
+                picker.SuggestedStartLocation = PickerLocationId.MusicLibrary;
+
+                var files = await picker.PickMultipleFilesAsync();
+                if (files != null && files.Count > 0)
+                {
+                    Directory.CreateDirectory(MusicsFolderPath);
+
+                    foreach (var file in files)
+                    {
+                        var destPath = Path.Combine(MusicsFolderPath, file.Name);
+
+                        // Check if file already exists
+                        if (File.Exists(destPath))
+                        {
+                            var fileName = Path.GetFileNameWithoutExtension(file.Name);
+                            var extension = Path.GetExtension(file.Name);
+                            var counter = 1;
+
+                            while (File.Exists(destPath))
+                            {
+                                destPath = Path.Combine(MusicsFolderPath, $"{fileName}_{counter}{extension}");
+                                counter++;
+                            }
+                        }
+
+                        await file.CopyAsync(await StorageFolder.GetFolderFromPathAsync(MusicsFolderPath), Path.GetFileName(destPath), NameCollisionOption.GenerateUniqueName);
+                    }
+
+                    await LoadMusicListAsync();
+
+                    StatusIcon.Glyph = "\uE930";
+                    StatusIcon.Foreground = new SolidColorBrush(Colors.Green);
+                    StatusText.Text = $"Added {files.Count} music file(s)";
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusIcon.Glyph = "\uE7BA";
+                StatusIcon.Foreground = new SolidColorBrush(Colors.Red);
+                StatusText.Text = $"Error adding music: {ex.Message}";
+            }
+        }
+
+        private async void SetDefaultButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (MusicListView.SelectedItem is MusicItem selectedItem)
+            {
+                SaveDefaultMusicPath(selectedItem.FileName);
+                await LoadMusicListAsync();
+
+                StatusIcon.Glyph = "\uE930";
+                StatusIcon.Foreground = new SolidColorBrush(Colors.Green);
+                StatusText.Text = $"Set '{selectedItem.DisplayName}' as default";
+            }
+        }
+
+        private async void RemoveMusicButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (MusicListView.SelectedItem is MusicItem selectedItem)
+            {
+                try
+                {
+                    File.Delete(selectedItem.FullPath);
+
+                    // If it was the default, reset to lofi_rain.m4a
+                    if (selectedItem.IsDefault)
+                    {
+                        SaveDefaultMusicPath(AUDIO_FILENAME);
+                    }
+
+                    await LoadMusicListAsync();
+
+                    StatusIcon.Glyph = "\uE930";
+                    StatusIcon.Foreground = new SolidColorBrush(Colors.Green);
+                    StatusText.Text = $"Removed '{selectedItem.DisplayName}'";
+                }
+                catch (Exception ex)
+                {
+                    StatusIcon.Glyph = "\uE7BA";
+                    StatusIcon.Foreground = new SolidColorBrush(Colors.Red);
+                    StatusText.Text = $"Error removing music: {ex.Message}";
+                }
+            }
+        }
+
+        private void MusicListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var hasSelection = MusicListView.SelectedItem != null;
+            SetDefaultButton.IsEnabled = hasSelection;
+            RemoveMusicButton.IsEnabled = hasSelection;
         }
 
         private async Task DownloadAudioFile(CancellationToken ct)

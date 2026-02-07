@@ -7,8 +7,6 @@ using Microsoft.UI.Xaml.Media.Animation;
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
 using Windows.Storage;
 
@@ -26,6 +24,7 @@ namespace WolfyDesktop
         private AppWindow? _appWindow;
 
         private readonly DispatcherTimer timer;
+        private readonly DispatcherTimer _inactivityTimer;
         private string currentHours = "00";
         private string currentMinutes = "00";
         private string currentSeconds = "00";
@@ -35,12 +34,13 @@ namespace WolfyDesktop
         private bool IsChilled = false;
 
         private static string AudioFilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Musics", "lofi_rain.m4a");
+        private static string MusicsFolderPath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Musics");
 
         public MainWindow()
         {
             this.InitializeComponent();
 
-            // Set up the timer
+            // Set up the clock timer
             timer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromSeconds(1) // Update every second
@@ -50,6 +50,17 @@ namespace WolfyDesktop
                 UpdateClockDisplay();
             };
             timer.Start();
+
+            // Set up the inactivity timer for audio player auto-hide
+            _inactivityTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(5)
+            };
+            _inactivityTimer.Tick += InactivityTimer_Tick;
+
+            // Subscribe to user input events
+            MainContainer.PointerMoved += OnUserActivity;
+            MainContainer.KeyDown += (s, e) => OnUserActivity(s, null);
 
             // Theme
             SetTheme(MyTheme.DARK);
@@ -71,6 +82,70 @@ namespace WolfyDesktop
 
             // Initial audio check
             _ = CheckAudioFileExists();
+        }
+
+        private void OnUserActivity(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs? e)
+        {
+            // Show the audio player panel
+            if (AudioPlayerPanel.Visibility == Visibility.Collapsed && File.Exists(AudioManagerDialog.GetDefaultMusicPath()))
+            {
+                ShowAudioPlayerPanel();
+            }
+
+            // Reset the inactivity timer
+            _inactivityTimer.Stop();
+            _inactivityTimer.Start();
+        }
+
+        private void InactivityTimer_Tick(object? sender, object e)
+        {
+            // Hide the audio player panel after inactivity
+            HideAudioPlayerPanel();
+            _inactivityTimer.Stop();
+        }
+
+        private void ShowAudioPlayerPanel()
+        {
+            AudioPlayerPanel.Visibility = Visibility.Visible;
+
+            // Create fade-in animation
+            var fadeIn = new DoubleAnimation
+            {
+                From = 0,
+                To = 1,
+                Duration = new Duration(TimeSpan.FromMilliseconds(300)),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+
+            var storyboard = new Storyboard();
+            Storyboard.SetTarget(fadeIn, AudioPlayerPanel);
+            Storyboard.SetTargetProperty(fadeIn, "Opacity");
+            storyboard.Children.Add(fadeIn);
+            storyboard.Begin();
+        }
+
+        private void HideAudioPlayerPanel()
+        {
+            // Create fade-out animation
+            var fadeOut = new DoubleAnimation
+            {
+                From = 1,
+                To = 0,
+                Duration = new Duration(TimeSpan.FromMilliseconds(300)),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+            };
+
+            var storyboard = new Storyboard();
+            Storyboard.SetTarget(fadeOut, AudioPlayerPanel);
+            Storyboard.SetTargetProperty(fadeOut, "Opacity");
+
+            storyboard.Completed += (s, e) =>
+            {
+                AudioPlayerPanel.Visibility = Visibility.Collapsed;
+            };
+
+            storyboard.Children.Add(fadeOut);
+            storyboard.Begin();
         }
 
         private void SetTheme(string selectedTheme)
@@ -152,15 +227,17 @@ namespace WolfyDesktop
 
         private async Task<bool> CheckAudioFileExists()
         {
-            // Check if the audio file exists
-            if (!File.Exists(AudioFilePath))
+            var defaultMusicPath = AudioManagerDialog.GetDefaultMusicPath();
+
+            // Check if the default music file exists
+            if (!File.Exists(defaultMusicPath))
             {
                 AudioPlayerPanel.Visibility = Visibility.Collapsed;
-                await ShowPackageManagerDialog();
                 return false;
             }
 
-            AudioPlayerPanel.Visibility = Visibility.Visible;
+            // Don't automatically show - let user activity trigger it
+            // AudioPlayerPanel will be shown on first user interaction
             return true;
         }
 
@@ -168,8 +245,10 @@ namespace WolfyDesktop
         {
             if (BackgroundAudio.MediaPlayer == null)
             {
+                var defaultMusicPath = AudioManagerDialog.GetDefaultMusicPath();
+
                 // Initialize and load the audio
-                var file = await StorageFile.GetFileFromPathAsync(AudioFilePath);
+                var file = await StorageFile.GetFileFromPathAsync(defaultMusicPath);
                 var mediaPlayer = new Windows.Media.Playback.MediaPlayer
                 {
                     Source = Windows.Media.Core.MediaSource.CreateFromStorageFile(file),
@@ -187,6 +266,9 @@ namespace WolfyDesktop
 
         private async void ButtonPlayPause_Click(object _, RoutedEventArgs _1)
         {
+            // Reset inactivity timer on interaction
+            OnUserActivity(this, null);
+
             if (!await CheckAudioFileExists())
             {
                 return;
@@ -217,6 +299,38 @@ namespace WolfyDesktop
             if (BackgroundAudio?.MediaPlayer != null)
             {
                 BackgroundAudio.MediaPlayer.Volume = e.NewValue / 100.0;
+            }
+        }
+
+        private void ButtonVolumeUp_Click(object sender, RoutedEventArgs e)
+        {
+            // Reset inactivity timer on interaction
+            OnUserActivity(this, null);
+
+            // Increase volume by 5%
+            if (VolumeSlider.Value + 5 <= VolumeSlider.Maximum)
+            {
+                VolumeSlider.Value += 5;
+            }
+            else
+            {
+                VolumeSlider.Value = VolumeSlider.Maximum;
+            }
+        }
+
+        private void ButtonVolumeDown_Click(object sender, RoutedEventArgs e)
+        {
+            // Reset inactivity timer on interaction
+            OnUserActivity(this, null);
+
+            // Decrease volume by 5%
+            if (VolumeSlider.Value - 5 >= VolumeSlider.Minimum)
+            {
+                VolumeSlider.Value -= 5;
+            }
+            else
+            {
+                VolumeSlider.Value = VolumeSlider.Minimum;
             }
         }
 
@@ -432,7 +546,6 @@ namespace WolfyDesktop
 
         private void ButtonCheckUpdate_Click(object sender, RoutedEventArgs e)
         {
-
             var exePath = Environment.ProcessPath!;
             var version = FileVersionInfo.GetVersionInfo(exePath).FileVersion;
 
@@ -455,12 +568,18 @@ namespace WolfyDesktop
                 Content = audioManager
             };
 
-            dialog.Closing += (s, args) =>
+            if (!string.IsNullOrEmpty(message))
+            {
+                audioManager.SetMessage(message);
+            }
+
+            dialog.Closing += async (s, args) =>
             {
                 audioManager.CancelDownload();
             };
 
             await dialog.ShowAsync();
+            await CheckAudioFileExists();
         }
 
         private void WelcomPanel_Loaded(object sender, RoutedEventArgs e)
