@@ -1,0 +1,154 @@
+<UserControl
+    x:Class="WolfyDesktop.Views.AudioManagerDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:WolfyDesktop.Views"
+    xmlns:models="using:WolfyDesktop.Core.Models"
+    Width="500">
+
+    <StackPanel Spacing="15">
+        <!--  Library status  -->
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <FontIcon
+                VerticalAlignment="Center"
+                FontSize="16"
+                Foreground="{x:Bind local:StatusVisuals.Foreground(ViewModel.Status), Mode=OneWay}"
+                Glyph="{x:Bind local:StatusVisuals.Glyph(ViewModel.Status), Mode=OneWay}" />
+            <TextBlock
+                VerticalAlignment="Center"
+                Text="{x:Bind ViewModel.StatusText, Mode=OneWay}"
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!--  Downloadable default track  -->
+        <StackPanel Spacing="10">
+            <TextBlock FontWeight="SemiBold" Text="Default audio (Lofi Rain)" />
+
+            <ProgressBar
+                IsIndeterminate="{x:Bind ViewModel.IsDownloadProgressIndeterminate, Mode=OneWay}"
+                Visibility="{x:Bind ViewModel.IsDownloading, Mode=OneWay}"
+                Value="{x:Bind ViewModel.DownloadProgress, Mode=OneWay}" />
+
+            <TextBlock
+                Foreground="{x:Bind local:StatusVisuals.Foreground(ViewModel.DownloadMessageKind), Mode=OneWay}"
+                Text="{x:Bind ViewModel.DownloadMessage, Mode=OneWay}"
+                TextWrapping="Wrap"
+                Visibility="{x:Bind local:StatusVisuals.VisibleIfNotEmpty(ViewModel.DownloadMessage), Mode=OneWay}" />
+
+            <Button
+                HorizontalAlignment="Stretch"
+                Command="{x:Bind ViewModel.DownloadCommand}"
+                Content="{x:Bind ViewModel.DownloadButtonText, Mode=OneWay}"
+                Visibility="{x:Bind local:StatusVisuals.CollapsedIf(ViewModel.IsDownloading), Mode=OneWay}" />
+
+            <Button
+                HorizontalAlignment="Stretch"
+                Command="{x:Bind ViewModel.DownloadCancelCommand}"
+                Content="Cancel download"
+                Visibility="{x:Bind ViewModel.IsDownloading, Mode=OneWay}" />
+        </StackPanel>
+
+        <Border
+            Height="1"
+            Background="{ThemeResource DividerStrokeColorDefaultBrush}"
+            Opacity="0.5" />
+
+        <!--  Library  -->
+        <StackPanel Spacing="10">
+            <TextBlock FontWeight="SemiBold" Text="Your music library" />
+
+            <ListView
+                x:Name="TrackList"
+                Height="200"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                ItemsSource="{x:Bind ViewModel.Tracks}"
+                SelectionChanged="TrackList_SelectionChanged"
+                SelectionMode="Single">
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="models:MusicTrack">
+                        <Grid Padding="8" ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <FontIcon
+                                VerticalAlignment="Center"
+                                FontSize="16"
+                                Glyph="&#xE8D6;" />
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock
+                                    FontWeight="SemiBold"
+                                    Text="{x:Bind DisplayName}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                    FontSize="11"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Text="{x:Bind SizeText}" />
+                            </StackPanel>
+
+                            <Border
+                                Grid.Column="2"
+                                Padding="8,4"
+                                VerticalAlignment="Center"
+                                Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                CornerRadius="4"
+                                Visibility="{x:Bind IsDefault}">
+                                <TextBlock
+                                    FontSize="11"
+                                    FontWeight="SemiBold"
+                                    Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                                    Text="DEFAULT" />
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+            <Grid ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Button
+                    HorizontalAlignment="Stretch"
+                    Click="AddMusicButton_Click"
+                    Content="Add music" />
+                <Button
+                    Grid.Column="1"
+                    HorizontalAlignment="Stretch"
+                    Command="{x:Bind ViewModel.SetDefaultCommand}"
+                    Content="Set as default" />
+                <Button
+                    Grid.Column="2"
+                    HorizontalAlignment="Stretch"
+                    Command="{x:Bind ViewModel.DeleteCommand}"
+                    Content="Remove" />
+            </Grid>
+        </StackPanel>
+
+        <Border
+            Height="1"
+            Background="{ThemeResource DividerStrokeColorDefaultBrush}"
+            Opacity="0.5" />
+
+        <StackPanel Spacing="4">
+            <Button
+                HorizontalAlignment="Stretch"
+                Command="{x:Bind ViewModel.OpenFolderCommand}"
+                Content="Open music folder" />
+            <TextBlock
+                FontSize="11"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                IsTextSelectionEnabled="True"
+                Text="{x:Bind ViewModel.FolderPath}"
+                TextWrapping="Wrap" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

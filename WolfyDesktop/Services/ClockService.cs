@@ -1,59 +1,39 @@
-using System;
 using Microsoft.UI.Dispatching;
+using WolfyDesktop.Core.Services;
 
 namespace WolfyDesktop.Services;
 
-public class ClockService : IClockService
+/// <summary>
+/// Ticks on the UI thread once per second, re-aligned to the wall clock on every
+/// tick so the displayed seconds never drift, skip or repeat.
+/// </summary>
+public sealed class ClockService
 {
-    private readonly DispatcherQueue _dispatcherQueue;
-    private DispatcherQueueTimer? _timer;
-
-    public event EventHandler<ClockUpdateEventArgs>? ClockUpdated;
-
-    public bool IsRunning => _timer?.IsRunning ?? false;
+    private readonly DispatcherQueueTimer _timer;
 
     public ClockService(DispatcherQueue dispatcherQueue)
     {
-        _dispatcherQueue = dispatcherQueue;
+        _timer = dispatcherQueue.CreateTimer();
+        _timer.IsRepeating = false;
+        _timer.Tick += (_, _) => RaiseAndScheduleNext();
     }
+
+    public event EventHandler<DateTime>? Tick;
 
     public void Start()
     {
-        if (_timer != null && _timer.IsRunning)
-            return;
-
-        _timer = _dispatcherQueue.CreateTimer();
-        _timer.Interval = TimeSpan.FromSeconds(1);
-        _timer.Tick += OnTimerTick;
-        _timer.Start();
-        
-        // Fire immediately on start
-        RaiseClockUpdated();
-    }
-
-    public void Stop()
-    {
-        if (_timer != null)
+        if (!_timer.IsRunning)
         {
-            _timer.Stop();
-            _timer.Tick -= OnTimerTick;
-            _timer = null;
+            RaiseAndScheduleNext();
         }
     }
 
-    private void OnTimerTick(DispatcherQueueTimer sender, object args)
-    {
-        RaiseClockUpdated();
-    }
+    public void Stop() => _timer.Stop();
 
-    private void RaiseClockUpdated()
+    private void RaiseAndScheduleNext()
     {
-        var now = DateTime.Now;
-        ClockUpdated?.Invoke(this, new ClockUpdateEventArgs
-        {
-            Hours = now.ToString("HH"),
-            Minutes = now.ToString("mm"),
-            Seconds = now.ToString("ss")
-        });
+        Tick?.Invoke(this, DateTime.Now);
+        _timer.Interval = ClockSchedule.DelayUntilNextSecond(DateTime.Now);
+        _timer.Start();
     }
 }

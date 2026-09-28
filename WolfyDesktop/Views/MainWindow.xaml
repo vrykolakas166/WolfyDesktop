@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="WolfyDesktop.Views.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="WolfyDesktop">
+
+    <Grid
+        x:Name="RootGrid"
+        Background="Black"
+        KeyboardAcceleratorPlacementMode="Hidden"
+        PointerMoved="RootGrid_PointerMoved">
+
+        <!--  Keyboard shortcuts (see README)  -->
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Key="F2" Invoked="Accelerator_Invoked" />
+            <KeyboardAccelerator Key="F4" Invoked="Accelerator_Invoked" />
+            <KeyboardAccelerator Key="F6" Invoked="Accelerator_Invoked" />
+            <KeyboardAccelerator Key="F10" Invoked="Accelerator_Invoked" />
+            <KeyboardAccelerator Key="F11" Invoked="Accelerator_Invoked" />
+            <KeyboardAccelerator Key="F12" Invoked="Accelerator_Invoked" />
+            <KeyboardAccelerator Key="Space" Invoked="Accelerator_Invoked" />
+            <KeyboardAccelerator Key="Up" Invoked="Accelerator_Invoked" />
+            <KeyboardAccelerator Key="Down" Invoked="Accelerator_Invoked" />
+        </Grid.KeyboardAccelerators>
+
+        <!--  Chill mode background video  -->
+        <MediaPlayerElement
+            x:Name="BackgroundVideo"
+            AreTransportControlsEnabled="False"
+            Opacity="0.5"
+            Stretch="UniformToFill" />
+
+        <!--  Clock: scales with the window; the top quarter is left empty  -->
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="3*" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="10*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Viewbox
+                Grid.Row="1"
+                Grid.Column="1"
+                VerticalAlignment="Top"
+                Stretch="Uniform">
+                <StackPanel Orientation="Horizontal">
+                    <StackPanel.Resources>
+                        <!--  Fixed digit width keeps the clock from shifting as proportional digits change  -->
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontFamily" Value="{StaticResource SFProDisplay}" />
+                            <Setter Property="FontSize" Value="200" />
+                            <Setter Property="TextAlignment" Value="Center" />
+                        </Style>
+                        <x:Double x:Key="DigitWidth">128</x:Double>
+                    </StackPanel.Resources>
+
+                    <TextBlock x:Name="HourTens" Width="{StaticResource DigitWidth}" Text="0" />
+                    <TextBlock x:Name="HourUnits" Width="{StaticResource DigitWidth}" Text="0" />
+                    <TextBlock Text=":" />
+                    <TextBlock x:Name="MinuteTens" Width="{StaticResource DigitWidth}" Text="0" />
+                    <TextBlock x:Name="MinuteUnits" Width="{StaticResource DigitWidth}" Text="0" />
+                    <TextBlock Text=":" />
+                    <TextBlock x:Name="SecondTens" Width="{StaticResource DigitWidth}" Text="0" />
+                    <TextBlock x:Name="SecondUnits" Width="{StaticResource DigitWidth}" Text="0" />
+                </StackPanel>
+            </Viewbox>
+        </Grid>
+
+        <!--  Audio controls: shown on mouse movement, hidden after a few idle seconds  -->
+        <StackPanel
+            x:Name="AudioControls"
+            Margin="20,0,0,20"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Bottom"
+            Opacity="0"
+            Orientation="Horizontal"
+            Spacing="15"
+            Visibility="Collapsed">
+            <!--  No keyboard focus, so Space always goes to the shortcut instead of clicking twice  -->
+            <Button
+                Width="40"
+                Height="40"
+                AllowFocusOnInteraction="False"
+                Command="{x:Bind ViewModel.TogglePlayPauseCommand}"
+                ToolTipService.ToolTip="Play/Pause (Space)">
+                <FontIcon FontSize="13" Glyph="{x:Bind PlayPauseGlyph(ViewModel.IsAudioPlaying), Mode=OneWay}" />
+            </Button>
+            <StackPanel
+                VerticalAlignment="Center"
+                Orientation="Horizontal"
+                Spacing="10">
+                <FontIcon FontSize="13" Glyph="&#xE767;" />
+                <Slider
+                    Width="100"
+                    AllowFocusOnInteraction="False"
+                    Maximum="100"
+                    Minimum="0"
+                    ToolTipService.ToolTip="Volume (Up/Down)"
+                    Value="{x:Bind ViewModel.Volume, Mode=TwoWay}" />
+            </StackPanel>
+        </StackPanel>
+
+        <!--  Update ready  -->
+        <InfoBar
+            MaxWidth="380"
+            Margin="0,0,20,20"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom"
+            IsOpen="{x:Bind ViewModel.IsUpdateBannerOpen, Mode=TwoWay}"
+            Message="{x:Bind ViewModel.UpdateStatusText, Mode=OneWay}"
+            Severity="Informational"
+            Title="Update ready">
+            <InfoBar.ActionButton>
+                <Button Command="{x:Bind ViewModel.RestartToUpdateCommand}" Content="Restart now" />
+            </InfoBar.ActionButton>
+        </InfoBar>
+
+        <!--  Flyout anchors: invisible points that position the F2 and F10 flyouts  -->
+        <Border
+            x:Name="ThemeFlyoutAnchor"
+            Width="1"
+            Height="1"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Bottom">
+            <FlyoutBase.AttachedFlyout>
+                <Flyout>
+                    <ComboBox
+                        x:Name="ThemeComboBox"
+                        Width="200"
+                        Header="Theme"
+                        SelectionChanged="ThemeComboBox_SelectionChanged" />
+                </Flyout>
+            </FlyoutBase.AttachedFlyout>
+        </Border>
+
+        <Border
+            x:Name="AboutFlyoutAnchor"
+            Width="1"
+            Height="1"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom">
+            <FlyoutBase.AttachedFlyout>
+                <Flyout>
+                    <StackPanel Width="300" Spacing="10">
+                        <TextBlock Style="{ThemeResource BodyStrongTextBlockStyle}" Text="{x:Bind ViewModel.VersionText}" />
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Text="{x:Bind ViewModel.UpdateStatusText, Mode=OneWay}"
+                            TextWrapping="Wrap" />
+                        <ProgressBar Visibility="{x:Bind ViewModel.IsDownloadingUpdate, Mode=OneWay}" Value="{x:Bind ViewModel.UpdateDownloadProgress, Mode=OneWay}" />
+                        <Button
+                            HorizontalAlignment="Stretch"
+                            Command="{x:Bind ViewModel.CheckForUpdatesCommand}"
+                            Content="Check for updates"
+                            Visibility="{x:Bind ViewModel.IsUpdateSupported}" />
+                        <Button
+                            HorizontalAlignment="Stretch"
+                            Command="{x:Bind ViewModel.RestartToUpdateCommand}"
+                            Content="Restart to update"
+                            Style="{ThemeResource AccentButtonStyle}"
+                            Visibility="{x:Bind ViewModel.IsUpdateReady, Mode=OneWay}" />
+                        <TextBlock
+                            FontSize="12"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Text="F2 theme · F4 exit · F6 audio manager · F11 full screen · F12 chill mode · Space play/pause · Up/Down volume"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Flyout>
+            </FlyoutBase.AttachedFlyout>
+        </Border>
+
+        <!--  Welcome splash  -->
+        <Border
+            x:Name="WelcomePanel"
+            Background="Black"
+            IsHitTestVisible="False"
+            Loaded="WelcomePanel_Loaded">
+            <Image
+                x:Name="WelcomeImage"
+                Width="300"
+                Height="300"
+                Stretch="Uniform">
+                <Image.Source>
+                    <BitmapImage DecodePixelWidth="300" UriSource="ms-appx:///Assets/loading.gif" />
+                </Image.Source>
+            </Image>
+        </Border>
+    </Grid>
+</Window>

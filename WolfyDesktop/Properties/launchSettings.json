@@ -1,9 +1,6 @@
 {
   "profiles": {
-    "WolfyDesktop (Package)": {
-      "commandName": "MsixPackage"
-    },
-    "WolfyDesktop (Unpackaged)": {
+    "WolfyDesktop": {
       "commandName": "Project"
     }
   }

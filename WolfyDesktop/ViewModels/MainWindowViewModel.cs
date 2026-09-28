@@ -1,330 +1,248 @@
-using System;
 using System.Diagnostics;
-using System.IO;
-using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.UI.Dispatching;
 using Windows.Media.Playback;
-using Windows.System;
+using WolfyDesktop.Core.Models;
+using WolfyDesktop.Core.Services;
 using WolfyDesktop.Services;
 
 namespace WolfyDesktop.ViewModels;
 
-public partial class MainWindowViewModel : ObservableObject
+public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 {
-    private readonly IClockService _clockService;
-    private readonly IMediaService _videoMediaService;
-    private readonly IMediaService _audioMediaService;
-    private readonly IThemeService _themeService;
-    private readonly ISettingsService _settingsService;
-    private readonly IFileService _fileService;
+    /// <summary>Gives startup some breathing room before touching the network.</summary>
+    private static readonly TimeSpan StartupUpdateCheckDelay = TimeSpan.FromSeconds(10);
 
-    #region Observable Properties
-
-    [ObservableProperty]
-    private string _currentHours = "00";
-
-    [ObservableProperty]
-    private string _currentMinutes = "00";
-
-    [ObservableProperty]
-    private string _currentSeconds = "00";
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ThemeUpperCase))]
-    private string _selectedTheme = "Dark";
-
-    [ObservableProperty]
-    private bool _isChilled;
-
-    [ObservableProperty]
-    private bool _isAudioPlayerVisible;
-
-    [ObservableProperty]
-    private double _volume = 50;
-
-    [ObservableProperty]
-    private string _playPauseIcon = "\uE768"; // Play icon
-
-    [ObservableProperty]
-    private string _versionInfo = string.Empty;
-
-    [ObservableProperty]
-    private bool _isWelcomePanelVisible = true;
-
-    #endregion
-
-    #region Computed Properties
-
-    public string ThemeUpperCase => SelectedTheme.ToUpperInvariant();
-
-    public MediaPlayer? VideoMediaPlayer => _videoMediaService.MediaPlayer;
-
-    public MediaPlayer? BackgroundAudioMediaPlayer => _audioMediaService.MediaPlayer;
-
-    #endregion
-
-    #region Events
-
-    public event EventHandler? ExitRequested;
-    public event EventHandler? FullScreenToggleRequested;
-    public event EventHandler? PackageManagerRequested;
-    public event EventHandler? UserActivityDetected;
-    public event EventHandler<string>? ClockUpdated;
-
-    #endregion
+    private readonly ClockService _clock;
+    private readonly MediaPlayerService _video;
+    private readonly BackgroundAudioService _audio;
+    private readonly ISettingsStore _settings;
+    private readonly IUpdateService _updates;
+    private bool _isUpdating;
 
     public MainWindowViewModel(
-        IClockService clockService,
-        IMediaService videoMediaService,
-        IMediaService backgroundMediaService,
-        IThemeService themeService,
-        ISettingsService settingsService,
-        IFileService fileService)
+        ClockService clock,
+        MediaPlayerService video,
+        BackgroundAudioService audio,
+        ISettingsStore settings,
+        IUpdateService updates)
     {
-        _clockService = clockService;
-        _videoMediaService = videoMediaService;
-        _audioMediaService = backgroundMediaService;
-        _themeService = themeService;
-        _settingsService = settingsService;
-        _fileService = fileService;
+        _clock = clock;
+        _video = video;
+        _audio = audio;
+        _settings = settings;
+        _updates = updates;
 
-        // Subscribe to service events
-        _clockService.ClockUpdated += OnClockUpdated;
-        _audioMediaService.PlaybackStateChanged += OnAudioPlaybackStateChanged;
+        SelectedTheme = settings.Current.Theme;
+        Volume = settings.Current.Volume;
+        VersionText = $"Version {updates.CurrentVersion}";
+        UpdateStatusText = updates.IsSupported ? string.Empty : "Updates are available in the installed app.";
 
-        // Load settings
-        SelectedTheme = _settingsService.Theme;
-        Volume = _settingsService.Volume;
-
-        // Start clock
-        _clockService.Start();
-
-        // Update version info
-        UpdateVersionInfo();
+        _audio.IsPlayingChanged += OnAudioIsPlayingChanged;
+        _audio.HasTrackChanged += OnAudioHasTrackChanged;
+        _clock.Tick += OnClockTick;
+        _clock.Start();
     }
 
-    #region Event Handlers
+    [ObservableProperty]
+    public partial DateTime CurrentTime { get; set; }
 
-    private void OnClockUpdated(object? sender, ClockUpdateEventArgs e)
+    [ObservableProperty]
+    public partial AppTheme SelectedTheme { get; set; }
+
+    /// <summary>0–100.</summary>
+    [ObservableProperty]
+    public partial double Volume { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsChilled { get; set; }
+
+    /// <summary>The chill-mode video, or null when chill mode is off.</summary>
+    [ObservableProperty]
+    public partial MediaPlayer? VideoPlayer { get; set; }
+
+    [ObservableProperty]
+    public partial string UpdateStatusText { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsDownloadingUpdate { get; set; }
+
+    [ObservableProperty]
+    public partial double UpdateDownloadProgress { get; set; }
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RestartToUpdateCommand))]
+    public partial bool IsUpdateReady { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsUpdateBannerOpen { get; set; }
+
+    public string VersionText { get; }
+
+    public bool IsUpdateSupported => _updates.IsSupported;
+
+    public bool IsAudioPlaying => _audio.IsPlaying;
+
+    public bool HasAudioTrack => _audio.HasTrack;
+
+    partial void OnSelectedThemeChanged(AppTheme value)
     {
-        CurrentHours = e.Hours;
-        CurrentMinutes = e.Minutes;
-        CurrentSeconds = e.Seconds;
-        ClockUpdated?.Invoke(this, $"{e.Hours}:{e.Minutes}:{e.Seconds}");
-    }
-
-    private void OnAudioPlaybackStateChanged(object? sender, PlaybackStateChangedEventArgs e)
-    {
-        PlayPauseIcon = !e.IsPlaying ? "\uE769" : "\uE768"; // Pause : Play
-    }
-
-    #endregion
-
-    #region Property Changed Handlers
-
-    partial void OnSelectedThemeChanged(string value)
-    {
-        _settingsService.Theme = value;
+        if (_settings.Current.Theme != value)
+        {
+            _settings.Update(s => s.Theme = value);
+        }
     }
 
     partial void OnVolumeChanged(double value)
     {
-        _settingsService.Volume = value;
-        _audioMediaService.Volume = value / 100.0;
-    }
-
-    #endregion
-
-    #region Commands
-
-    [RelayCommand]
-    private void FocusMode()
-    {
-        FullScreenToggleRequested?.Invoke(this, EventArgs.Empty);
-    }
-
-    [RelayCommand]
-    private async Task ChillModeAsync()
-    {
-        try
+        var clamped = Math.Clamp(value, 0, 100);
+        if (clamped != value)
         {
-            if (IsChilled)
-            {
-                // Stop video
-                _videoMediaService.Reset();
-                OnPropertyChanged(nameof(VideoMediaPlayer));
-
-                // Pause audio (don't reset - user might want to keep playing)
-                if (_audioMediaService.IsPlaying)
-                {
-                    _audioMediaService.Pause();
-                }
-
-                IsChilled = false;
-            }
-            else
-            {
-                // Load video
-                var videoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "background.mp4");
-                var videoInitialized = await _videoMediaService.InitializeAsync(videoPath);
-
-                if (videoInitialized)
-                {
-                    _videoMediaService.Play();
-                    OnPropertyChanged(nameof(VideoMediaPlayer));
-
-                    // Load and play audio if available
-                    var defaultMusicPath = _fileService.GetDefaultMusicPath();
-                    if (!string.IsNullOrEmpty(defaultMusicPath) && _fileService.FileExists(defaultMusicPath))
-                    {
-                        if (!_audioMediaService.IsInitialized)
-                        {
-                            await InitializeBackgroundAudioAsync(defaultMusicPath);
-                        }
-                        else if (!_audioMediaService.IsPlaying)
-                        {
-                            _audioMediaService.Play();
-                        }
-                    }
-
-                    IsChilled = true;
-                }
-            }
+            Volume = clamped;
+            return;
         }
-        catch (Exception ex)
+
+        _audio.Volume = value;
+        if (_settings.Current.Volume != value)
         {
-            Debug.WriteLine($"ChillMode error: {ex.Message}");
-            // Reset state on error
+            _settings.Update(s => s.Volume = value);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ToggleChillModeAsync()
+    {
+        if (IsChilled)
+        {
+            // Detach the video from the view before the player is disposed.
+            VideoPlayer = null;
+            _video.Unload();
+            _audio.Pause();
             IsChilled = false;
+            return;
         }
-    }
 
-    [RelayCommand]
-    private async Task PlayPauseAsync()
-    {
-        OnUserActivity();
-
-        var defaultMusicPath = _fileService.GetDefaultMusicPath();
-        if (string.IsNullOrEmpty(defaultMusicPath) || !_fileService.FileExists(defaultMusicPath))
+        var videoPath = Path.Combine(AppContext.BaseDirectory, "Assets", "background.mp4");
+        if (!File.Exists(videoPath))
         {
             return;
         }
 
-        if (!_audioMediaService.IsInitialized)
+        await _video.LoadAsync(videoPath, loop: true, enableSystemMediaControls: false);
+        VideoPlayer = _video.Player;
+        _video.Play();
+        IsChilled = true;
+
+        await _audio.PlayAsync();
+    }
+
+    [RelayCommand]
+    private Task TogglePlayPauseAsync() => _audio.TogglePlayPauseAsync();
+
+    [RelayCommand]
+    private void VolumeUp() => Volume = Math.Min(Volume + 5, 100);
+
+    [RelayCommand]
+    private void VolumeDown() => Volume = Math.Max(Volume - 5, 0);
+
+    /// <summary>Stops decoding the video while nobody can see it.</summary>
+    public void OnWindowVisibilityChanged(bool isVisible)
+    {
+        if (!IsChilled)
         {
-            await InitializeBackgroundAudioAsync(defaultMusicPath);
+            return;
+        }
+
+        if (isVisible)
+        {
+            _video.Play();
         }
         else
         {
-            if (_audioMediaService.IsPlaying)
-            {
-                _audioMediaService.Pause();
-            }
-            else
-            {
-                _audioMediaService.Play();
-            }
+            _video.Pause();
         }
     }
 
-    [RelayCommand]
-    private void VolumeUp()
+    /// <summary>Checks once, shortly after startup, and downloads any update quietly.</summary>
+    public async Task CheckForUpdatesInBackgroundAsync()
     {
-        OnUserActivity();
-        Volume = Math.Min(Volume + 5, 100);
-    }
-
-    [RelayCommand]
-    private void VolumeDown()
-    {
-        OnUserActivity();
-        Volume = Math.Max(Volume - 5, 0);
-    }
-
-    [RelayCommand]
-    private void Exit()
-    {
-        ExitRequested?.Invoke(this, EventArgs.Empty);
-    }
-
-    [RelayCommand]
-    private void CheckUpdate()
-    {
-        UpdateVersionInfo();
-    }
-
-    [RelayCommand]
-    private void ShowPackageManager()
-    {
-        PackageManagerRequested?.Invoke(this, EventArgs.Empty);
-    }
-
-    #endregion
-
-    #region Public Methods
-
-    public void OnUserActivity()
-    {
-        var defaultMusicPath = _fileService.GetDefaultMusicPath();
-        if (!IsAudioPlayerVisible && !string.IsNullOrEmpty(defaultMusicPath) && _fileService.FileExists(defaultMusicPath))
+        if (!_updates.IsSupported)
         {
-            IsAudioPlayerVisible = true;
+            return;
         }
-        UserActivityDetected?.Invoke(this, EventArgs.Empty);
+
+        await Task.Delay(StartupUpdateCheckDelay);
+        await RunUpdateAsync(userInitiated: false);
     }
 
-    public void HideAudioPlayer()
+    [RelayCommand]
+    private Task CheckForUpdatesAsync() => RunUpdateAsync(userInitiated: true);
+
+    [RelayCommand(CanExecute = nameof(IsUpdateReady))]
+    private async Task RestartToUpdateAsync()
     {
-        IsAudioPlayerVisible = false;
+        await _settings.FlushAsync();
+        _updates.ApplyAndRestart();
     }
 
-    public void HideWelcomePanel()
+    private async Task RunUpdateAsync(bool userInitiated)
     {
-        IsWelcomePanelVisible = false;
-    }
-
-    public bool HasDefaultMusicFile()
-    {
-        var path = _fileService.GetDefaultMusicPath();
-        return !string.IsNullOrEmpty(path) && _fileService.FileExists(path);
-    }
-
-    public void ApplyTheme(Microsoft.UI.Xaml.FrameworkElement element)
-    {
-        _themeService.ApplyTheme(element, SelectedTheme);
-    }
-
-    #endregion
-
-    #region Private Methods
-
-    private async Task InitializeBackgroundAudioAsync(string path)
-    {
-        var initialized = await _audioMediaService.InitializeAsync(path);
-        if (initialized)
+        if (IsUpdateReady)
         {
-            PlayPauseIcon = "\uE769";
-            _audioMediaService.Volume = Volume / 100.0;
-            _audioMediaService.Play();
-            OnPropertyChanged(nameof(BackgroundAudioMediaPlayer));
+            IsUpdateBannerOpen = userInitiated;
+            return;
         }
-    }
 
-    private void UpdateVersionInfo()
-    {
+        if (_isUpdating)
+        {
+            return;
+        }
+
+        _isUpdating = true;
         try
         {
-            var exePath = Environment.ProcessPath!;
-            var version = FileVersionInfo.GetVersionInfo(exePath).FileVersion;
-            VersionInfo = $"Version: {version}";
+            UpdateStatusText = "Checking for updates…";
+            if (!await _updates.CheckAsync())
+            {
+                UpdateStatusText = "You're on the latest version.";
+                return;
+            }
+
+            UpdateStatusText = $"Downloading version {_updates.AvailableVersion}…";
+            UpdateDownloadProgress = 0;
+            IsDownloadingUpdate = true;
+            await _updates.DownloadAsync(new Progress<int>(percent => UpdateDownloadProgress = percent));
+
+            UpdateStatusText = $"Version {_updates.AvailableVersion} is ready. Restart to install it.";
+            IsUpdateReady = true;
+            IsUpdateBannerOpen = true;
         }
-        catch
+        catch (Exception ex)
         {
-            VersionInfo = "Version: Unknown";
+            // Usually just offline. Stay quiet unless the user asked.
+            Debug.WriteLine($"Update failed: {ex}");
+            UpdateStatusText = userInitiated ? $"Couldn't check for updates: {ex.Message}" : string.Empty;
+        }
+        finally
+        {
+            IsDownloadingUpdate = false;
+            _isUpdating = false;
         }
     }
 
-    #endregion
+    private void OnClockTick(object? sender, DateTime now) => CurrentTime = now;
+
+    private void OnAudioIsPlayingChanged(object? sender, EventArgs e) => OnPropertyChanged(nameof(IsAudioPlaying));
+
+    private void OnAudioHasTrackChanged(object? sender, EventArgs e) => OnPropertyChanged(nameof(HasAudioTrack));
+
+    public void Dispose()
+    {
+        _clock.Tick -= OnClockTick;
+        _clock.Stop();
+        _audio.IsPlayingChanged -= OnAudioIsPlayingChanged;
+        _audio.HasTrackChanged -= OnAudioHasTrackChanged;
+        VideoPlayer = null;
+        _video.Dispose();
+    }
 }

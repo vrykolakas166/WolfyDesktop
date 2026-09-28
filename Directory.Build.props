@@ -1,0 +1,19 @@
+<Project>
+  <!-- Shared by every project in the solution. -->
+  <PropertyGroup>
+    <!-- Single source of truth for the app version. CI overrides it from the release tag (-p:Version=x.y.z). -->
+    <Version>1.2.0</Version>
+    <Product>WolfyDesktop</Product>
+    <Company>Wolfy Inc</Company>
+    <Authors>Phuc Pham Hong</Authors>
+    <Copyright>Copyright © Phuc Pham Hong</Copyright>
+
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Needed for IDE0005 (unused usings) to run on build; missing-doc warnings stay off. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+</Project>
