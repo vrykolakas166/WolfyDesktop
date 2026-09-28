@@ -189,7 +189,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         if (IsUpdateReady)
         {
-            IsUpdateBannerOpen = userInitiated;
+            IsUpdateBannerOpen |= userInitiated;
             return;
         }
 

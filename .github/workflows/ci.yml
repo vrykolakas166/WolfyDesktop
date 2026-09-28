@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build
+        run: dotnet build WolfyDesktop.sln -c Release -p:Platform=x64 --nologo
+
+      - name: Test
+        run: dotnet test WolfyDesktop.Tests -c Release --nologo

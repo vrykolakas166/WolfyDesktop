@@ -1,0 +1,26 @@
+name: Release
+
+# Push a tag like v1.2.1 to build, package and publish a release.
+# Installed copies of the app pick it up through the in-app updater.
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build, package and upload
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./scripts/Publish-Release.ps1 -Version '${{ github.ref_name }}' -Upload
