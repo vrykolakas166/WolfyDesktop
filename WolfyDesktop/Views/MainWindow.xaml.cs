@@ -197,6 +197,8 @@ public sealed partial class MainWindow : Window
         timer.Start();
     }
 
+    private void RootGrid_Loaded(object sender, RoutedEventArgs e) => RootGrid.Focus(FocusState.Programmatic);
+
     #region Audio controls
 
     private void RootGrid_PointerMoved(object sender, PointerRoutedEventArgs e) => ShowAudioControls();

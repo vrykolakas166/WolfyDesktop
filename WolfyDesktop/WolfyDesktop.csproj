@@ -14,6 +14,9 @@
 		<!-- Unpackaged, self-contained: installed and updated by Velopack, no runtime prerequisites. -->
 		<WindowsPackageType>None</WindowsPackageType>
 		<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+		<!-- Not for MSIX: unpackaged apps still need this to put the compiled XAML (resources.pri)
+		     into the publish output. Without it every page fails with "XAML parsing failed". -->
+		<EnableMsixTooling>true</EnableMsixTooling>
 
 		<!-- Program.cs provides Main so Velopack can run before any XAML starts. -->
 		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
@@ -43,7 +46,10 @@
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
 		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
-		<PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
+		<!-- Only the WinUI component (not the Microsoft.WindowsAppSDK metapackage), which would
+		     otherwise ship ~45 MB of unused AI runtimes (onnxruntime, DirectML) with the app. -->
+		<PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="2.3.9" />
+		<PackageReference Include="Microsoft.WindowsAppSDK.InteractiveExperiences" Version="2.1.9" />
 	</ItemGroup>
 
 	<ItemGroup>

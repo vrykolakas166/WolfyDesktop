@@ -16,6 +16,10 @@ public partial class App : Application
 
     public App()
     {
+        UnhandledException += (_, e) => CrashLog.Write(e.Exception, "XAML");
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => CrashLog.Write((Exception)e.ExceptionObject, "AppDomain");
+        TaskScheduler.UnobservedTaskException += (_, e) => CrashLog.Write(e.Exception, "Task");
+
         InitializeComponent();
         Services = ConfigureServices();
     }

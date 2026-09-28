@@ -5,11 +5,15 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="WolfyDesktop">
 
+    <!--  Focusable so keyboard shortcuts work from launch, before anything is clicked  -->
     <Grid
         x:Name="RootGrid"
         Background="Black"
+        IsTabStop="True"
         KeyboardAcceleratorPlacementMode="Hidden"
-        PointerMoved="RootGrid_PointerMoved">
+        Loaded="RootGrid_Loaded"
+        PointerMoved="RootGrid_PointerMoved"
+        UseSystemFocusVisuals="False">
 
         <!--  Keyboard shortcuts (see README)  -->
         <Grid.KeyboardAccelerators>
