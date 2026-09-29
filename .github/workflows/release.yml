@@ -1,26 +1,68 @@
 name: Release
 
-# Push a tag like v1.2.1 to build, package and publish a release.
-# Installed copies of the app pick it up through the in-app updater.
+# Two ways to release; both build, package and publish a GitHub release that
+# installed copies pick up through the in-app updater:
+#   1. Push a tag:  git tag v1.3.0 && git push origin v1.3.0  (or scripts/New-Release.ps1)
+#   2. Actions tab -> Release -> Run workflow, choosing patch/minor/major or an exact version.
 on:
   push:
     tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Part of the latest version to increase
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+      version:
+        description: Exact version instead, e.g. 2.0.0 (leave empty to bump)
+        type: string
+        required: false
 
 permissions:
   contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: windows-latest
     steps:
+      - name: Only release from master
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/master'
+        run: |
+          echo "::error::Run this workflow on master."
+          exit 1
+
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history and tags, for version numbers
 
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
 
+      - name: Work out version
+        id: version
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
+          BUMP: ${{ inputs.bump }}
+          EXACT_VERSION: ${{ inputs.version }}
+        run: |
+          if ($env:GITHUB_EVENT_NAME -eq 'push') {
+            $version = $env:TAG.TrimStart('v')
+          } else {
+            $version = ./scripts/Get-NextVersion.ps1 -Bump $env:BUMP -Version $env:EXACT_VERSION
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "Releasing **$version**" >> $env:GITHUB_STEP_SUMMARY
+
       - name: Build, package and upload
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./scripts/Publish-Release.ps1 -Version '${{ github.ref_name }}' -Upload
+          VERSION: ${{ steps.version.outputs.version }}
+        run: ./scripts/Publish-Release.ps1 -Version $env:VERSION -Upload

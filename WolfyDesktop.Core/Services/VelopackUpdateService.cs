@@ -1,3 +1,4 @@
+using System.Reflection;
 using Velopack;
 using Velopack.Sources;
 
@@ -16,9 +17,14 @@ public sealed class VelopackUpdateService : IUpdateService
 
     public bool IsSupported => _manager.IsInstalled;
 
+    /// <summary>
+    /// The installed version, or for a development build the version MinVer derived from git
+    /// (e.g. 1.2.1-preview.0.3), without the "+commit" suffix.
+    /// </summary>
     public string CurrentVersion =>
         _manager.CurrentVersion?.ToString()
-        ?? typeof(VelopackUpdateService).Assembly.GetName().Version?.ToString(3)
+        ?? typeof(VelopackUpdateService).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
         ?? "unknown";
 
     public string? AvailableVersion => _update?.TargetFullRelease.Version.ToString();

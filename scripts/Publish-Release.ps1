@@ -11,8 +11,10 @@
 
     With -Upload, publishes them as a GitHub release, which is where installed copies look for updates.
 
+    Normally run by the Release workflow; to cut a release, use New-Release.ps1 instead.
+
 .EXAMPLE
-    ./scripts/Publish-Release.ps1                     # package the version in Directory.Build.props
+    ./scripts/Publish-Release.ps1                     # package the version git tags give this commit
     ./scripts/Publish-Release.ps1 -Version 1.2.1 -Upload -Token $env:GITHUB_TOKEN
 #>
 [CmdletBinding()]
@@ -38,22 +40,25 @@ function Invoke-Checked([string] $what, [scriptblock] $command) {
     if ($LASTEXITCODE -ne 0) { throw "$what failed (exit code $LASTEXITCODE)." }
 }
 
-if (-not $Version) {
-    $Version = ([xml](Get-Content (Join-Path $root 'Directory.Build.props'))).Project.PropertyGroup.Version | Select-Object -First 1
-}
-$Version = $Version.TrimStart('v')   # accept tag names like v1.2.1
-if ($Version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') { throw "Version '$Version' is not SemVer (e.g. 1.2.0)." }
-if ($Upload -and -not $Token) { throw 'Uploading needs a GitHub token: pass -Token or set GITHUB_TOKEN.' }
-
 # Native AOT locates the C++ linker through vswhere, which is not on PATH outside a VS developer shell.
 $vsInstaller = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer'
 if (-not (Get-Command vswhere -ErrorAction SilentlyContinue) -and (Test-Path $vsInstaller)) {
     $env:PATH = "$env:PATH;$vsInstaller"
 }
 
+if ($Upload -and -not $Token) { throw 'Uploading needs a GitHub token: pass -Token or set GITHUB_TOKEN.' }
+
 Push-Location $root
 try {
     Invoke-Checked 'Restore tools' { dotnet tool restore }
+
+    if (-not $Version) {
+        # Same settings as MinVer in Directory.Build.props.
+        $Version = dotnet tool run minver --tag-prefix v --default-pre-release-identifiers preview.0 --verbosity error
+        if ($LASTEXITCODE -ne 0) { throw 'Could not work out the version from git tags.' }
+    }
+    $Version = $Version.Trim().TrimStart('v')   # accept tag names like v1.2.1
+    if ($Version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') { throw "Version '$Version' is not SemVer (e.g. 1.2.0)." }
 
     if (-not $SkipTests) {
         Invoke-Checked 'Run tests' { dotnet test WolfyDesktop.Tests -c Release --nologo }
@@ -88,8 +93,14 @@ try {
 
     if ($Upload) {
         Invoke-Checked 'Upload GitHub release' {
-            dotnet vpk upload github --repoUrl $repoUrl --token $Token -o $releaseDir `
-                --publish --tag "v$Version" --releaseName "WolfyDesktop $Version"
+            $uploadArgs = @(
+                '--repoUrl', $repoUrl, '--token', $Token, '-o', $releaseDir, '--publish',
+                '--tag', "v$Version", '--releaseName', "WolfyDesktop $Version",
+                # Creates the tag on this exact commit when it does not exist yet (manual workflow runs).
+                '--targetCommitish', (git rev-parse HEAD))
+            # Pre-releases (1.3.0-beta.1) are published but not offered to installed copies.
+            if ($Version.Contains('-')) { $uploadArgs += '--pre' }
+            dotnet vpk upload github @uploadArgs
         }
     }
 

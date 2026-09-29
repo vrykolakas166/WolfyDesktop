@@ -1,8 +1,6 @@
 <Project>
   <!-- Shared by every project in the solution. -->
   <PropertyGroup>
-    <!-- Single source of truth for the app version. CI overrides it from the release tag (-p:Version=x.y.z). -->
-    <Version>1.2.0</Version>
     <Product>WolfyDesktop</Product>
     <Company>Wolfy Inc</Company>
     <Authors>Phuc Pham Hong</Authors>
@@ -16,4 +14,17 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
+
+  <!--
+    The version comes from git tags (MinVer): building the commit tagged v1.3.0 gives 1.3.0, and
+    later untagged commits give 1.3.1-preview.0.N. Release by tagging; see scripts/New-Release.ps1.
+  -->
+  <PropertyGroup>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerDefaultPreReleaseIdentifiers>preview.0</MinVerDefaultPreReleaseIdentifiers>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MinVer" Version="8.0.0" PrivateAssets="all" />
+  </ItemGroup>
 </Project>

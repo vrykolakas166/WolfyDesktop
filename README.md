@@ -48,9 +48,18 @@ dotnet test WolfyDesktop.Tests                  # unit tests
 
 ## Releasing
 
-1. Bump `<Version>` in `Directory.Build.props` and commit.
-2. Push a matching tag: `git tag v1.2.1 && git push origin v1.2.1`.
+The version number lives only in git tags ([MinVer](https://github.com/adamralph/minver)), so there is no file to edit. Pick one:
 
-The *Release* workflow builds the app as Native AOT, packages it with [Velopack](https://velopack.io) (including a delta from the previous release) and publishes a GitHub release. Installed copies update from there.
+| How | Command |
+| --- | --- |
+| Next patch, automatically | `./scripts/New-Release.ps1` (v1.2.0 → v1.2.1) |
+| Next minor / major | `./scripts/New-Release.ps1 -Bump minor` or `-Bump major` |
+| Exact version | `./scripts/New-Release.ps1 -Version 2.0.0` |
+| Plain git | `git tag v1.2.1 && git push origin v1.2.1` |
+| From the browser | GitHub → Actions → **Release** → *Run workflow* (choose bump or version) |
 
-To build the installer locally, run `./scripts/Publish-Release.ps1`. The output goes to `artifacts/releases`.
+`New-Release.ps1` checks that you are on an up-to-date, clean `master`, shows the version and asks before tagging (`-WhatIf` previews, `-Yes` skips the prompt). A version with a suffix such as `1.3.0-beta.1` is published as a pre-release and not offered to installed copies.
+
+The *Release* workflow then builds the app as Native AOT, packages it with [Velopack](https://velopack.io) (including a delta from the previous release) and publishes a GitHub release. Installed copies update from there.
+
+To build the installer locally without publishing, run `./scripts/Publish-Release.ps1`. The output goes to `artifacts/releases`. Development builds show a version like `1.2.1-preview.0.3` (three commits after v1.2.0).
