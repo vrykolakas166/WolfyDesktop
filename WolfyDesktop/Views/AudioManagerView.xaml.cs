@@ -8,9 +8,9 @@ using WolfyDesktop.ViewModels;
 
 namespace WolfyDesktop.Views;
 
-public sealed partial class AudioManagerDialog : UserControl
+public sealed partial class AudioManagerView : UserControl
 {
-    public AudioManagerDialog()
+    public AudioManagerView()
     {
         ViewModel = App.Current.Services.GetRequiredService<AudioManagerViewModel>();
         InitializeComponent();

@@ -8,6 +8,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
+            <!--  Subset to the clock's characters (0-9 and ':') to save 3.5 MB; subset the full font again to show anything else  -->
             <FontFamily x:Key="SFProDisplay">/Assets/font/SF-Pro-Display-Bold.otf#SF Pro Display</FontFamily>
         </ResourceDictionary>
     </Application.Resources>

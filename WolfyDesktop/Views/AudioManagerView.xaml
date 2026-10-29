@@ -1,5 +1,5 @@
 <UserControl
-    x:Class="WolfyDesktop.Views.AudioManagerDialog"
+    x:Class="WolfyDesktop.Views.AudioManagerView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:WolfyDesktop.Views"

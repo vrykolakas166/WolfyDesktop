@@ -10,8 +10,6 @@ public interface IUpdateService
     /// <summary>Version found by the last successful <see cref="CheckAsync"/>, if any.</summary>
     string? AvailableVersion { get; }
 
-    bool IsReadyToApply { get; }
-
     /// <summary>Returns true when a newer version is available.</summary>
     Task<bool> CheckAsync();
 

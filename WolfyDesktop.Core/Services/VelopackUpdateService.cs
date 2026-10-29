@@ -10,10 +10,11 @@ namespace WolfyDesktop.Core.Services;
 /// </summary>
 public sealed class VelopackUpdateService : IUpdateService
 {
-    public const string RepositoryUrl = "https://github.com/vrykolakas166/WolfyDesktop";
+    private const string RepositoryUrl = "https://github.com/vrykolakas166/WolfyDesktop";
 
     private readonly UpdateManager _manager = new(new GithubSource(RepositoryUrl, accessToken: null, prerelease: false));
     private UpdateInfo? _update;
+    private bool _isReadyToApply;
 
     public bool IsSupported => _manager.IsInstalled;
 
@@ -29,8 +30,6 @@ public sealed class VelopackUpdateService : IUpdateService
 
     public string? AvailableVersion => _update?.TargetFullRelease.Version.ToString();
 
-    public bool IsReadyToApply { get; private set; }
-
     public async Task<bool> CheckAsync()
     {
         if (!IsSupported)
@@ -39,7 +38,7 @@ public sealed class VelopackUpdateService : IUpdateService
         }
 
         _update = await _manager.CheckForUpdatesAsync().ConfigureAwait(false);
-        IsReadyToApply = false;
+        _isReadyToApply = false;
         return _update is not null;
     }
 
@@ -47,12 +46,12 @@ public sealed class VelopackUpdateService : IUpdateService
     {
         var update = _update ?? throw new InvalidOperationException("No update available. Call CheckAsync first.");
         await _manager.DownloadUpdatesAsync(update, p => progress?.Report(p), cancellationToken).ConfigureAwait(false);
-        IsReadyToApply = true;
+        _isReadyToApply = true;
     }
 
     public void ApplyAndRestart()
     {
-        if (_update is not null && IsReadyToApply)
+        if (_update is not null && _isReadyToApply)
         {
             _manager.ApplyUpdatesAndRestart(_update.TargetFullRelease);
         }

@@ -28,6 +28,9 @@ public class SettingsStoreTests
         Assert.That(store.Current.Theme, Is.EqualTo(AppTheme.Dark));
         Assert.That(store.Current.Volume, Is.EqualTo(50));
         Assert.That(store.Current.DefaultMusicFile, Is.Null);
+        Assert.That(store.Current.ControlsOpacity, Is.EqualTo(100));
+        Assert.That(store.Current.IsFullScreen, Is.True);
+        Assert.That(store.Current.WindowBounds, Is.Null);
     }
 
     [Test]
@@ -107,6 +110,24 @@ public class SettingsStoreTests
 
         Assert.That(reloaded.Current.Volume, Is.EqualTo(100));
         Assert.That(File.Exists(_paths.SettingsFile + ".tmp"), Is.False);
+    }
+
+    [Test]
+    public async Task FlushAsync_WindowState_RoundTrips()
+    {
+        var store = new SettingsStore(_paths);
+        store.Update(s =>
+        {
+            s.IsFullScreen = false;
+            s.WindowBounds = new WindowBounds(-1200, 80, 640, 360);
+        });
+
+        await store.FlushAsync();
+        var reloaded = new SettingsStore(_paths);
+        await reloaded.LoadAsync();
+
+        Assert.That(reloaded.Current.IsFullScreen, Is.False);
+        Assert.That(reloaded.Current.WindowBounds, Is.EqualTo(new WindowBounds(-1200, 80, 640, 360)));
     }
 
     [Test]

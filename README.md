@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  <img src="https://raw.githubusercontent.com/vrykolakas166/WolfyDesktop/master/logo_tran_1.png" alt="wolfy" width="200">
+  <img src="https://raw.githubusercontent.com/vrykolakas166/WolfyDesktop/master/branding/logo.png" alt="wolfy" width="200">
   <br>
   WolfyDesktop
   <br>
@@ -20,14 +20,19 @@ The app keeps itself up to date: it checks for a new version shortly after start
 
 | Key | Action |
 | --- | --- |
+| **F1** | Show this list of shortcuts |
 | **F2** | Change theme |
 | **F4** | Close the application |
-| **F6** | Open the audio manager (download Lofi Rain, add or remove your own music) |
+| **F6** | Open the audio manager (download Lofi Rain, add or remove your own music, set how visible the playback controls are) |
 | **F10** | Version and updates |
 | **F11** | Toggle full screen |
 | **F12** | Toggle chill mode (background video and music) |
+| **T** | Toggle always on top (windowed mode) |
 | **Space** | Play / pause music |
 | **Up / Down** | Volume |
+| **Esc** | Close the open panel |
+
+Outside full screen the window has no title bar: press and drag any empty spot to move it, and drag the edges to resize it (down to 20 × 20 pixels). If the window is too small for a panel, it grows to fit while the panel is open and shrinks back afterwards. The app reopens the way you left it: full screen, or windowed at the same position and size.
 
 Your settings and music live in `%LocalAppData%\WolfyDesktop`, so they survive updates and reinstalls.
 
