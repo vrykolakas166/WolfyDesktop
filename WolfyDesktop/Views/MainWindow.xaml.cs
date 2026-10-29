@@ -65,6 +65,9 @@ public sealed partial class MainWindow : Window
     private readonly TextBlock[] _digits;
     private readonly DispatcherQueueTimer _audioControlsIdleTimer;
     private readonly DispatcherQueueTimer _toastTimer;
+    // Kept rather than read back from AppWindow.Presenter: casting that to OverlappedPresenter
+    // throws InvalidCastException in Native AOT builds.
+    private readonly OverlappedPresenter _windowedPresenter = OverlappedPresenter.Create();
     private bool _isAlwaysOnTop;
     private bool _areAudioControlsShown;
     private double _audioControlsOpacity;
@@ -339,7 +342,7 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private void GrowWindowToFitPanel(Action onCompleted)
     {
-        if (AppWindow.Presenter is not OverlappedPresenter { State: OverlappedPresenterState.Restored })
+        if (!IsWindowedAndRestored)
         {
             onCompleted();
             return;
@@ -380,7 +383,7 @@ public sealed partial class MainWindow : Window
 
         var current = GetWindowBounds();
         if (before is not { } target
-            || AppWindow.Presenter is not OverlappedPresenter { State: OverlappedPresenterState.Restored }
+            || !IsWindowedAndRestored
             || current.Width != _boundsForPanel.Width
             || current.Height != _boundsForPanel.Height)
         {
@@ -458,7 +461,7 @@ public sealed partial class MainWindow : Window
 
         // Only plain windowed bounds are kept: not full screen, minimized, maximized, or grown to fit a panel.
         WindowBounds? windowedBounds = null;
-        if (AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Restored } && _boundsBeforePanel is null)
+        if (IsWindowedAndRestored && _boundsBeforePanel is null)
         {
             var bounds = GetWindowBounds();
             windowedBounds = new WindowBounds(bounds.X, bounds.Y, bounds.Width, bounds.Height);
@@ -466,6 +469,11 @@ public sealed partial class MainWindow : Window
 
         ViewModel.SaveWindowState(AppWindow.Presenter.Kind == AppWindowPresenterKind.FullScreen, windowedBounds);
     }
+
+    /// <summary>Windowed, and neither minimized nor maximized.</summary>
+    private bool IsWindowedAndRestored =>
+        AppWindow.Presenter.Kind == AppWindowPresenterKind.Overlapped
+        && _windowedPresenter.State == OverlappedPresenterState.Restored;
 
     private void ToggleFullScreen()
     {
@@ -485,22 +493,20 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private void ShowWindowed()
     {
-        // A new presenter each time, so settings are applied again after every switch.
-        AppWindow.SetPresenter(AppWindowPresenterKind.Overlapped);
-        var presenter = (OverlappedPresenter)AppWindow.Presenter;
-        presenter.SetBorderAndTitleBar(hasBorder: true, hasTitleBar: false);
-        presenter.IsAlwaysOnTop = _isAlwaysOnTop;
-        presenter.PreferredMinimumWidth = MinWindowSize;
-        presenter.PreferredMinimumHeight = MinWindowSize;
+        AppWindow.SetPresenter(_windowedPresenter);
+        _windowedPresenter.SetBorderAndTitleBar(hasBorder: true, hasTitleBar: false);
+        _windowedPresenter.IsAlwaysOnTop = _isAlwaysOnTop;
+        _windowedPresenter.PreferredMinimumWidth = MinWindowSize;
+        _windowedPresenter.PreferredMinimumHeight = MinWindowSize;
     }
 
     /// <summary>Full screen cannot stay on top, so there the choice waits for the windowed mode.</summary>
     private void ToggleAlwaysOnTop()
     {
         _isAlwaysOnTop = !_isAlwaysOnTop;
-        if (AppWindow.Presenter is OverlappedPresenter presenter)
+        _windowedPresenter.IsAlwaysOnTop = _isAlwaysOnTop;
+        if (AppWindow.Presenter.Kind == AppWindowPresenterKind.Overlapped)
         {
-            presenter.IsAlwaysOnTop = _isAlwaysOnTop;
             ShowToast(_isAlwaysOnTop ? "Always on top: on" : "Always on top: off");
         }
         else
@@ -555,7 +561,7 @@ public sealed partial class MainWindow : Window
         var (dx, dy) = (cursor.X - _dragStartCursor.X, cursor.Y - _dragStartCursor.Y);
         if (!_isDragging)
         {
-            var canMove = AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Restored }
+            var canMove = IsWindowedAndRestored
                 && _windowAnimationFrame is null;
             _isDragging = canMove && (Math.Abs(dx) > DragThreshold || Math.Abs(dy) > DragThreshold);
         }
